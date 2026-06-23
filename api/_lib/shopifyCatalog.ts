@@ -255,7 +255,7 @@ async function enrichWithMerchantProductData(entries: CatalogProductEntry[]) {
 
 const SHOPIFY_PRODUCTS_QUERY = `
   query CatalogProducts($cursor: String) {
-    products(first: 100, after: $cursor, query: "status:active") {
+    products(first: 25, after: $cursor, query: "status:active") {
       pageInfo {
         hasNextPage
         endCursor
