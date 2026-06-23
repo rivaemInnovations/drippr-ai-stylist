@@ -51,10 +51,40 @@ export const occasionContextSchema = z.object({
 
 export const recommendRequestSchema = z.object({
   gender: genderSchema,
+  sizeProfile: z
+    .object({
+      heightCm: z.number().positive().nullable().optional(),
+      weightKg: z.number().positive().nullable().optional(),
+      bust: z.number().positive().nullable().optional(),
+      waist: z.number().positive().nullable().optional(),
+      hip: z.number().positive().nullable().optional(),
+      length: z.number().positive().nullable().optional(),
+      preferredSize: z.string().trim().max(20).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   vibe: z.string().min(1).max(80),
   category: z.string().min(1).max(120),
   occasion: z.string().trim().min(2).max(800),
   priceRange: priceRangeSchema,
+});
+
+const productMeasurementsSchema = z.object({
+  bust: z.number().nullable().optional(),
+  waist: z.number().nullable().optional(),
+  hip: z.number().nullable().optional(),
+  length: z.number().nullable().optional(),
+  unit: z.string().nullable().optional(),
+});
+
+const variantMeasurementsSchema = z.object({
+  variantId: z.string().nullable().optional(),
+  variantNumericId: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+  optionValues: z.array(z.string()).default([]),
+  availableForSale: z.boolean().nullable().optional(),
+  sku: z.string().nullable().optional(),
+  measurements: productMeasurementsSchema.nullable().optional(),
 });
 
 export const merchantProductSchema = z.object({
@@ -75,10 +105,13 @@ export const merchantProductSchema = z.object({
   inventoryQty: z.number().nullable().optional(),
   merchantId: z.string().nullable().optional(),
   shopifyProductId: z.string().nullable().optional(),
+  shopifyProductNumericId: z.string().nullable().optional(),
   shopifyVariantNumericIds: z
     .array(z.union([z.string(), z.number()]))
     .nullable()
     .optional(),
+  measurements: productMeasurementsSchema.nullable().optional(),
+  variantMeasurements: z.array(variantMeasurementsSchema).nullable().optional(),
   createdAt: z.number().nullable().optional(),
   updatedAt: z.number().nullable().optional(),
 });
@@ -99,6 +132,11 @@ export const recommendedProductSchema = z.object({
   shopifyProductId: z.string().nullable(),
   storeUrl: z.string().nullable(),
   addToCartUrl: z.string().nullable(),
+  fitVerified: z.boolean().optional(),
+  fitMatchLabel: z.string().nullable().optional(),
+  sizeMatchScore: z.number().optional(),
+  matchedSize: z.string().nullable().optional(),
+  matchedVariantNumericId: z.string().nullable().optional(),
 });
 
 export const recommendResponseSchema = z.object({
@@ -114,3 +152,4 @@ export type RecommendRequest = z.infer<typeof recommendRequestSchema>;
 export type MerchantProduct = z.infer<typeof merchantProductSchema>;
 export type RecommendedProduct = z.infer<typeof recommendedProductSchema>;
 export type RecommendResponse = z.infer<typeof recommendResponseSchema>;
+export type UserSizeProfile = NonNullable<RecommendRequest["sizeProfile"]>;

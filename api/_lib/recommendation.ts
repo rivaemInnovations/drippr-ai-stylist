@@ -4,6 +4,7 @@ import type {
   OccasionContext,
   PriceRange,
   RecommendedProduct,
+  UserSizeProfile,
 } from "./schemas.js";
 
 const VIBE_KEYWORDS: Record<string, string[]> = {
@@ -531,6 +532,156 @@ function vibeHitsForProduct(product: MerchantProduct, vibe: string) {
   return countExactAliasMatches(text, tokens, aliases);
 }
 
+function numericValue(value: unknown) {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+const SIZE_TOLERANCE_INCHES = 2;
+
+function measurementFieldsForCategory(category: string) {
+  if (["Cargo & Pants", "Shorts & Skirts"].includes(category)) {
+    return ["waist", "hip", "length"] as const;
+  }
+
+  if (category === "Cord Set" || category === "Athleisure") {
+    return ["bust", "waist", "hip", "length"] as const;
+  }
+
+  return ["bust", "waist", "length"] as const;
+}
+
+function sizeLabel(optionValues: string[], title: string | null | undefined) {
+  const recognized = optionValues.find((value) =>
+    /^(xxs|xs|s|m|l|xl|xxl|xxxl|\d{1,3})$/i.test(value.trim()),
+  );
+  return recognized || title || optionValues.join(" / ") || null;
+}
+
+function compareMeasurements(
+  measurements: MerchantProduct["measurements"],
+  sizeProfile: UserSizeProfile,
+  fields: readonly ("bust" | "waist" | "hip" | "length")[],
+) {
+  const comparisons = fields
+    .map((key) => {
+      const productValue = numericValue(measurements?.[key]);
+      const userValue = numericValue(sizeProfile[key]);
+      if (productValue == null || userValue == null) return null;
+      return { key, difference: Math.abs(productValue - userValue) };
+    })
+    .filter(
+      (comparison): comparison is { key: (typeof fields)[number]; difference: number } =>
+        comparison !== null,
+    );
+
+  if (comparisons.length < 2) return null;
+
+  const verified = comparisons.every(
+    ({ difference }) => difference <= SIZE_TOLERANCE_INCHES,
+  );
+  const averageDifference =
+    comparisons.reduce((total, item) => total + item.difference, 0) /
+    comparisons.length;
+  const closeness = Math.max(
+    0,
+    1 - averageDifference / SIZE_TOLERANCE_INCHES,
+  );
+
+  return {
+    verified,
+    comparisons: comparisons.length,
+    averageDifference,
+    closeness,
+  };
+}
+
+function computeSizeMatch(
+  product: MerchantProduct,
+  sizeProfile: UserSizeProfile | null | undefined,
+  category: string,
+) {
+  if (!sizeProfile) {
+    return {
+      score: 0,
+      verified: false,
+      label: null,
+      matchedSize: null,
+      matchedVariantNumericId: null,
+    };
+  }
+
+  const fields = measurementFieldsForCategory(category);
+  const preferredSize = normalizeText(sizeProfile.preferredSize);
+  const variantCandidates = (product.variantMeasurements || [])
+    .filter((variant) => variant.availableForSale !== false)
+    .map((variant) => {
+      const comparison = compareMeasurements(
+        variant.measurements,
+        sizeProfile,
+        fields,
+      );
+      if (!comparison) return null;
+      const label = sizeLabel(
+        variant.optionValues || [],
+        variant.title,
+      );
+      const preferredBonus =
+        preferredSize && normalizeText(label) === preferredSize ? 4 : 0;
+      return {
+        ...comparison,
+        score:
+          Math.round(comparison.closeness * 22) +
+          comparison.comparisons * 3 +
+          preferredBonus,
+        matchedSize: label,
+        matchedVariantNumericId: variant.variantNumericId || null,
+      };
+    })
+    .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null)
+    .sort(
+      (a, b) =>
+        Number(b.verified) - Number(a.verified) ||
+        b.score - a.score ||
+        a.averageDifference - b.averageDifference,
+    );
+
+  const bestVariant = variantCandidates[0];
+  if (bestVariant) {
+    return {
+      score: bestVariant.score,
+      verified: bestVariant.verified,
+      label: bestVariant.verified
+        ? `Verified size match${bestVariant.matchedSize ? ` (${bestVariant.matchedSize})` : ""}`
+        : bestVariant.matchedSize
+          ? `Closest size: ${bestVariant.matchedSize}`
+          : "Close size match",
+      matchedSize: bestVariant.matchedSize,
+      matchedVariantNumericId: bestVariant.matchedVariantNumericId,
+    };
+  }
+
+  const fallback = compareMeasurements(product.measurements, sizeProfile, fields);
+  if (!fallback) {
+    return {
+      score: 0,
+      verified: false,
+      label: null,
+      matchedSize: null,
+      matchedVariantNumericId: null,
+    };
+  }
+
+  return {
+    score: Math.round(fallback.closeness * 18) + fallback.comparisons * 2,
+    verified: fallback.verified,
+    label: fallback.verified ? "Verified size match" : "Close size match",
+    matchedSize: null,
+    matchedVariantNumericId: null,
+  };
+}
+
 export function getAvailableCategories(args: {
   products: MerchantProduct[];
   gender: "Women" | "Men";
@@ -617,6 +768,7 @@ export function buildCandidatePool(args: {
 export function scoreProducts(args: {
   products: MerchantProduct[];
   gender: "Women" | "Men";
+  sizeProfile?: UserSizeProfile | null;
   vibe: string;
   category: string;
   priceRange: PriceRange;
@@ -635,6 +787,7 @@ export function scoreProducts(args: {
     const cat = categorySignals(product, args.category);
     const vibeHits = countExactAliasMatches(fullText, fullTokens, vibeAliases);
     const soldOut = isSoldOut(product);
+    const sizeMatch = computeSizeMatch(product, args.sizeProfile, args.category);
 
     let score = 0;
     const reasons: string[] = [];
@@ -653,6 +806,15 @@ export function scoreProducts(args: {
       score += 5;
     }
 
+    if (sizeMatch.score > 0) {
+      score += sizeMatch.score;
+      reasons.push(
+        sizeMatch.verified
+          ? "Verified against your size details."
+          : "Close to your size details.",
+      );
+    }
+
     return {
       id: product.id,
       title: product.title || "Untitled product",
@@ -669,6 +831,11 @@ export function scoreProducts(args: {
       shopifyProductId: product.shopifyProductId ?? null,
       storeUrl: null,
       addToCartUrl: null,
+      fitVerified: sizeMatch.verified,
+      fitMatchLabel: sizeMatch.label,
+      sizeMatchScore: sizeMatch.score,
+      matchedSize: sizeMatch.matchedSize,
+      matchedVariantNumericId: sizeMatch.matchedVariantNumericId,
     };
   });
 

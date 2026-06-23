@@ -1,4 +1,5 @@
 import type { MerchantProduct } from "./schemas.js";
+import { getAdminDb } from "./firebaseAdmin.js";
 
 export type CatalogProductEntry = {
   product: MerchantProduct;
@@ -68,6 +69,190 @@ function buildAddToCartUrl(variantNumericId: string) {
   )}&quantity=1&return_to=/cart`;
 }
 
+export function addToCartUrlForVariant(variantNumericId: string) {
+  return buildAddToCartUrl(variantNumericId);
+}
+
+function chunk<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function normalizeMeasurements(input: any) {
+  if (!input || typeof input !== "object") return null;
+
+  const toNumOrNull = (value: any) => {
+    if (value === "" || value == null) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const measurements = {
+    bust: toNumOrNull(input.bust),
+    waist: toNumOrNull(input.waist),
+    hip: toNumOrNull(input.hip),
+    length: toNumOrNull(input.length),
+    unit: typeof input.unit === "string" ? input.unit : "in",
+  };
+
+  return Object.values({
+    bust: measurements.bust,
+    waist: measurements.waist,
+    hip: measurements.hip,
+    length: measurements.length,
+  }).some((value) => typeof value === "number")
+    ? measurements
+    : null;
+}
+
+function normalizeMeasurementMetafields(nodes: any[]) {
+  if (!Array.isArray(nodes) || nodes.length === 0) return null;
+
+  const raw = nodes.reduce<Record<string, string>>((acc, node) => {
+    if (typeof node?.key === "string") {
+      acc[node.key] = String(node.value ?? "");
+    }
+    return acc;
+  }, {});
+
+  return normalizeMeasurements(raw);
+}
+
+function normalizeVariantMeasurements(input: any) {
+  if (!Array.isArray(input)) return [];
+
+  return input
+    .map((variant: any) => {
+      const variantId =
+        typeof variant?.variantId === "string"
+          ? variant.variantId
+          : typeof variant?.id === "string"
+            ? variant.id
+            : null;
+      const optionValues = Array.isArray(variant?.optionValues)
+        ? variant.optionValues.map((value: any) => String(value).trim()).filter(Boolean)
+        : Array.isArray(variant?.options)
+          ? variant.options.map((value: any) => String(value).trim()).filter(Boolean)
+          : [];
+
+      return {
+        variantId,
+        variantNumericId: extractNumericIdFromGid(variantId),
+        title:
+          typeof variant?.title === "string" && variant.title.trim()
+            ? variant.title.trim()
+            : optionValues.join(" / ") || null,
+        optionValues,
+        availableForSale:
+          typeof variant?.availableForSale === "boolean"
+            ? variant.availableForSale
+            : null,
+        sku: typeof variant?.sku === "string" ? variant.sku : null,
+        measurements: normalizeMeasurements(variant?.measurements),
+      };
+    })
+    .filter((variant: any) => variant.variantId || variant.optionValues.length);
+}
+
+function mergeVariantMeasurements(shopifyVariants: any[], firestoreVariants: any[]) {
+  const merged = new Map<string, any>();
+  const keyFor = (variant: any) =>
+    variant.variantId ||
+    (variant.optionValues || []).map((value: string) => value.toLowerCase()).join("|");
+
+  for (const variant of normalizeVariantMeasurements(shopifyVariants)) {
+    merged.set(keyFor(variant), variant);
+  }
+
+  for (const variant of normalizeVariantMeasurements(firestoreVariants)) {
+    const key = keyFor(variant);
+    const current = merged.get(key);
+    merged.set(key, {
+      ...current,
+      ...variant,
+      measurements: variant.measurements ?? current?.measurements ?? null,
+      availableForSale:
+        current?.availableForSale ?? variant.availableForSale ?? null,
+    });
+  }
+
+  return [...merged.values()];
+}
+
+async function fetchMerchantProductLookup(productIds: string[]) {
+  const lookup = new Map<string, Partial<MerchantProduct>>();
+  if (productIds.length === 0) return lookup;
+
+  const db = getAdminDb();
+  for (const productIdChunk of chunk(productIds, 10)) {
+    const snap = await db
+      .collection("merchantProducts")
+      .where("shopifyProductId", "in", productIdChunk)
+      .get();
+
+    snap.forEach((doc) => {
+      const data = doc.data();
+      const shopifyProductId =
+        typeof data.shopifyProductId === "string" ? data.shopifyProductId : "";
+      if (!shopifyProductId) return;
+
+      lookup.set(shopifyProductId, {
+        merchantId:
+          typeof data.merchantId === "string" ? data.merchantId : undefined,
+        sku: typeof data.sku === "string" ? data.sku : undefined,
+        measurements: normalizeMeasurements(data.measurements),
+        variantMeasurements: normalizeVariantMeasurements(
+          data.variantMeasurements || data.variantDraft?.variants,
+        ),
+      });
+    });
+  }
+
+  return lookup;
+}
+
+async function enrichWithMerchantProductData(entries: CatalogProductEntry[]) {
+  const shopifyProductIds = entries
+    .map((entry) => entry.product.shopifyProductId)
+    .filter((value): value is string => Boolean(value));
+
+  try {
+    const lookup = await fetchMerchantProductLookup(shopifyProductIds);
+
+    return entries.map((entry) => {
+      const merchantData = entry.product.shopifyProductId
+        ? lookup.get(entry.product.shopifyProductId)
+        : undefined;
+
+      if (!merchantData) return entry;
+
+      return {
+        ...entry,
+        product: {
+          ...entry.product,
+          merchantId: merchantData.merchantId ?? entry.product.merchantId,
+          sku: merchantData.sku ?? entry.product.sku,
+          measurements:
+            merchantData.measurements ?? entry.product.measurements ?? null,
+          variantMeasurements: mergeVariantMeasurements(
+            entry.product.variantMeasurements || [],
+            merchantData.variantMeasurements || [],
+          ),
+        },
+      };
+    });
+  } catch (error) {
+    console.warn(
+      "[shopifyCatalog] Unable to enrich products with merchant measurements",
+      error,
+    );
+    return entries;
+  }
+}
+
 const SHOPIFY_PRODUCTS_QUERY = `
   query CatalogProducts($cursor: String) {
     products(first: 100, after: $cursor, query: "status:active") {
@@ -93,11 +278,31 @@ const SHOPIFY_PRODUCTS_QUERY = `
             url
           }
         }
+        metafields(first: 10, namespace: "drippr_sizing") {
+          nodes {
+            key
+            value
+            type
+          }
+        }
         variants(first: 50) {
           nodes {
             id
+            title
+            sku
             availableForSale
             price
+            selectedOptions {
+              name
+              value
+            }
+            metafields(first: 10, namespace: "drippr_sizing") {
+              nodes {
+                key
+                value
+                type
+              }
+            }
           }
         }
       }
@@ -135,6 +340,20 @@ function normalizeShopifyProduct(node: any): CatalogProductEntry | null {
   const variantNumericIds = variantNodes
     .map((variant: any) => extractNumericIdFromGid(variant?.id))
     .filter((value: string | null): value is string => Boolean(value));
+
+  const variantMeasurements = variantNodes.map((variant: any) => ({
+    variantId: typeof variant?.id === "string" ? variant.id : null,
+    variantNumericId: extractNumericIdFromGid(variant?.id),
+    title: typeof variant?.title === "string" ? variant.title : null,
+    optionValues: Array.isArray(variant?.selectedOptions)
+      ? variant.selectedOptions
+          .map((option: any) => String(option?.value || "").trim())
+          .filter(Boolean)
+      : [],
+    availableForSale: Boolean(variant?.availableForSale),
+    sku: typeof variant?.sku === "string" ? variant.sku : null,
+    measurements: normalizeMeasurementMetafields(variant?.metafields?.nodes),
+  }));
 
   const liveVariantNumericId =
     extractNumericIdFromGid(availableVariant?.id) ??
@@ -185,6 +404,8 @@ function normalizeShopifyProduct(node: any): CatalogProductEntry | null {
     imageUrls: imageCandidates,
     images: imageCandidates,
     image: imageCandidates[0] ?? null,
+    measurements: normalizeMeasurementMetafields(node?.metafields?.nodes),
+    variantMeasurements,
     inventoryQty: soldOut ? 0 : 1,
     merchantId: null,
     shopifyProductId: typeof node?.id === "string" ? node.id : null,
@@ -229,5 +450,5 @@ export async function fetchShopifyCatalogProducts(): Promise<
         : null;
   }
 
-  return results;
+  return enrichWithMerchantProductData(results);
 }

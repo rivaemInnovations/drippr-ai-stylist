@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import TypewriterText from "./TypewriterText";
 import { Upload, Camera, Pencil, Send, Loader2 } from "lucide-react";
+import type { UserSizeProfile } from "@/types/recommendation";
 
 type PhotoStyleSnapshot = {
   skinToneLabel: string;
@@ -13,9 +14,13 @@ interface StepCardProps {
   question: string;
   helperText?: string;
   options?: string[];
-  type?: "chips" | "photo" | "prompt";
+  type?: "chips" | "photo" | "photo-size" | "prompt";
   answered?: string | null;
   onAnswer: (answer: string) => void;
+  onAnswerWithMetadata?: (
+    answer: string,
+    metadata: { sizeProfile?: UserSizeProfile | null },
+  ) => void;
   onEdit?: () => void;
   isActive: boolean;
   analysisText?: string;
@@ -32,6 +37,7 @@ const StepCard = ({
   type = "chips",
   answered,
   onAnswer,
+  onAnswerWithMetadata,
   onEdit,
   isActive,
   analysisText,
@@ -46,6 +52,14 @@ const StepCard = ({
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoAnswer, setPhotoAnswer] = useState<string | null>(null);
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [bust, setBust] = useState("");
+  const [waist, setWaist] = useState("");
+  const [hip, setHip] = useState("");
+  const [length, setLength] = useState("");
+  const [preferredSize, setPreferredSize] = useState("");
 
   const cardRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
@@ -138,7 +152,8 @@ const StepCard = ({
                 </span>
               )}
 
-              {type === "photo" && photoStyleSnapshot && (
+              {(type === "photo" || type === "photo-size") &&
+                photoStyleSnapshot && (
                 <div className="mt-3">
                   <div
                     className="rounded-2xl p-3 md:p-4"
@@ -247,6 +262,10 @@ const StepCard = ({
 
   const handlePhotoSkip = () => {
     setPhotoError(null);
+    if (type === "photo-size") {
+      setPhotoAnswer("Skipped photo validation");
+      return;
+    }
     onAnswer("Skipped photo validation");
   };
 
@@ -257,6 +276,10 @@ const StepCard = ({
       setPhotoError(null);
       setIsProcessingPhoto(true);
       const summary = await onPhotoSelected(file);
+      if (type === "photo-size") {
+        setPhotoAnswer(summary);
+        return;
+      }
       onAnswer(summary);
     } catch (error) {
       setPhotoError(
@@ -273,6 +296,44 @@ const StepCard = ({
     if (promptValue.trim()) {
       onAnswer(promptValue.trim());
     }
+  };
+
+  const toNullableNumber = (value: string) => {
+    if (!value.trim()) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const hasRequiredSizeBasics = heightCm.trim() !== "" && weightKg.trim() !== "";
+
+  const handleSizeSubmit = () => {
+    if (!hasRequiredSizeBasics) return;
+
+    const sizeProfile: UserSizeProfile = {
+      heightCm: toNullableNumber(heightCm),
+      weightKg: toNullableNumber(weightKg),
+      bust: toNullableNumber(bust),
+      waist: toNullableNumber(waist),
+      hip: toNullableNumber(hip),
+      length: toNullableNumber(length),
+      preferredSize: preferredSize.trim() || null,
+    };
+
+    const sizeSummary = [
+      sizeProfile.heightCm ? `${sizeProfile.heightCm} cm` : "",
+      sizeProfile.weightKg ? `${sizeProfile.weightKg} kg` : "",
+      sizeProfile.preferredSize ? `Size ${sizeProfile.preferredSize}` : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    const answer = `${photoAnswer || "Photo not added"} - ${sizeSummary}`;
+    if (onAnswerWithMetadata) {
+      onAnswerWithMetadata(answer, { sizeProfile });
+      return;
+    }
+
+    onAnswer(answer);
   };
 
   return (
@@ -345,7 +406,9 @@ const StepCard = ({
             </div>
           )}
 
-          {questionDone && helperDone && type === "photo" && (
+          {questionDone &&
+            helperDone &&
+            (type === "photo" || type === "photo-size") && (
             <div
               className="mt-5 animate-fade-up"
               style={{ animationDuration: "0.4s" }}
@@ -414,6 +477,98 @@ const StepCard = ({
                 <p className="text-sm text-red-400 mt-3 leading-relaxed">
                   {photoError}
                 </p>
+              )}
+
+              {type === "photo-size" && (
+                <div className="mt-6 border-t border-white/10 pt-5">
+                  <div className="mb-4">
+                    <p className="text-[10px] tracking-[0.24em] uppercase text-primary font-semibold">
+                      Step 2b
+                    </p>
+                    <h4 className="text-lg font-display font-semibold text-foreground mt-1">
+                      Add your size details
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      These help match product measurements from the seller
+                      panel.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={heightCm}
+                      onChange={(e) => setHeightCm(e.target.value)}
+                      placeholder="Height (cm)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={weightKg}
+                      onChange={(e) => setWeightKg(e.target.value)}
+                      placeholder="Weight (kg)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={bust}
+                      onChange={(e) => setBust(e.target.value)}
+                      placeholder="Bust/Chest (in)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={waist}
+                      onChange={(e) => setWaist(e.target.value)}
+                      placeholder="Waist (in)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={hip}
+                      onChange={(e) => setHip(e.target.value)}
+                      placeholder="Hip (in)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={length}
+                      onChange={(e) => setLength(e.target.value)}
+                      placeholder="Length (in)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      value={preferredSize}
+                      onChange={(e) => setPreferredSize(e.target.value)}
+                      placeholder="Usual size"
+                      className="col-span-2 bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                  </div>
+
+                  <div className="flex justify-end mt-4">
+                    <button
+                      onClick={handleSizeSubmit}
+                      disabled={!hasRequiredSizeBasics}
+                      className="shrink-0 h-10 rounded-full bg-primary px-4 flex items-center justify-center gap-2 text-primary-foreground disabled:opacity-30 hover:bg-primary/90 active:scale-95"
+                      style={{ transition: "all 0.2s ease" }}
+                    >
+                      <Send size={16} />
+                      Continue
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}

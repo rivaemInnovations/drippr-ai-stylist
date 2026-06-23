@@ -1,4 +1,4 @@
-import { ExternalLink, ShoppingBag } from "lucide-react";
+import { CheckCircle2, ExternalLink, ShoppingBag } from "lucide-react";
 import type { RecommendedProduct } from "@/types/recommendation";
 
 interface ProductCardProps {
@@ -31,6 +31,13 @@ const ProductCard = ({ product, index, onAddToBag }: ProductCardProps) => {
         {product.soldOut && (
           <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-background/85 border border-border text-[11px] font-semibold text-foreground backdrop-blur">
             Sold Out
+          </div>
+        )}
+
+        {product.fitVerified && !product.soldOut && (
+          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-primary/90 border border-primary/30 text-[11px] font-semibold text-primary-foreground backdrop-blur flex items-center gap-1">
+            <CheckCircle2 size={12} />
+            {product.fitMatchLabel || "Verified size match"}
           </div>
         )}
       </div>

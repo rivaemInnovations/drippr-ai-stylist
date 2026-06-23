@@ -16,6 +16,7 @@ import type {
   OccasionContext,
   PriceRange,
   RecommendedProduct,
+  UserSizeProfile,
 } from "@/types/recommendation";
 
 type PhotoStyleSnapshot = {
@@ -27,6 +28,7 @@ type PhotoStyleSnapshot = {
 interface Answers {
   gender: Gender | null;
   photo: string | null;
+  sizeProfile: UserSizeProfile | null;
   vibe: string | null;
   category: string | null;
   occasion: string | null;
@@ -36,6 +38,7 @@ interface Answers {
 const INITIAL: Answers = {
   gender: null,
   photo: null,
+  sizeProfile: null,
   vibe: null,
   category: null,
   occasion: null,
@@ -64,10 +67,10 @@ const STEPS = [
   {
     key: "photo" as const,
     stepNumber: 2,
-    question: "Upload a full-body photo",
+    question: "Step 2a. Upload a full-body photo",
     helperText:
       "We’ll verify that the image is head-to-toe and show a quick style snapshot.",
-    type: "photo" as const,
+    type: "photo-size" as const,
   },
   {
     key: "vibe" as const,
@@ -174,6 +177,7 @@ const Index = () => {
     try {
       const response = await recommendStyle({
         gender: nextAnswers.gender as Gender,
+        sizeProfile: nextAnswers.sizeProfile,
         vibe: nextAnswers.vibe as string,
         category: nextAnswers.category as string,
         occasion: nextAnswers.occasion as string,
@@ -198,9 +202,10 @@ const Index = () => {
   };
 
   const handleAnswer = useCallback(
-    (key: keyof Answers, value: string) => {
+    (key: keyof Answers, value: string, metadata?: Partial<Answers>) => {
       const nextAnswers = {
         ...answers,
+        ...metadata,
         [key]: value,
       } as Answers;
 
@@ -270,6 +275,9 @@ const Index = () => {
       keysToReset.forEach((key) => {
         updated[key] = null;
       });
+      if (stepIndex <= 1) {
+        updated.sizeProfile = null;
+      }
       return updated as Answers;
     });
 
@@ -355,6 +363,9 @@ const Index = () => {
                 type={step.type}
                 answered={isAnswered ? answerValue : undefined}
                 onAnswer={(val) => handleAnswer(step.key, val)}
+                onAnswerWithMetadata={(val, metadata) =>
+                  handleAnswer(step.key, val, metadata)
+                }
                 onEdit={isAnswered ? () => handleEditStep(i) : undefined}
                 isActive={isActive}
                 onPhotoSelected={

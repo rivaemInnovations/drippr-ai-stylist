@@ -1,5 +1,8 @@
 import { buildCandidatePool, scoreProducts } from "./_lib/recommendation.js";
-import { fetchShopifyCatalogProducts } from "./_lib/shopifyCatalog.js";
+import {
+  addToCartUrlForVariant,
+  fetchShopifyCatalogProducts,
+} from "./_lib/shopifyCatalog.js";
 import {
   recommendRequestSchema,
   recommendResponseSchema,
@@ -49,6 +52,7 @@ export default async function handler(req: any, res: any) {
     const rankedProducts = scoreProducts({
       products: pool.products,
       gender: body.gender,
+      sizeProfile: body.sizeProfile,
       vibe: body.vibe,
       category: body.category,
       priceRange: body.priceRange,
@@ -88,7 +92,11 @@ export default async function handler(req: any, res: any) {
         ...product,
         imageUrl: product.imageUrl ?? source?.product.image ?? null,
         storeUrl: source?.storeUrl ?? null,
-        addToCartUrl: product.soldOut ? null : (source?.addToCartUrl ?? null),
+        addToCartUrl: product.soldOut
+          ? null
+          : product.matchedVariantNumericId
+            ? addToCartUrlForVariant(product.matchedVariantNumericId)
+            : (source?.addToCartUrl ?? null),
       };
     });
 
@@ -111,7 +119,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({
       ...response,
       debugApplied: {
-        engineVersion: "shopify-first-v14",
+        engineVersion: "shopify-variant-fit-v15",
         category: body.category,
         vibe: body.vibe,
         priceRange: body.priceRange,

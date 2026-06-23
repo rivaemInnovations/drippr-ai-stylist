@@ -71,8 +71,19 @@ export interface OccasionContext {
   confidence: number;
 }
 
+export interface UserSizeProfile {
+  heightCm?: number | null;
+  weightKg?: number | null;
+  bust?: number | null;
+  waist?: number | null;
+  hip?: number | null;
+  length?: number | null;
+  preferredSize?: string | null;
+}
+
 export interface RecommendRequest {
   gender: Gender;
+  sizeProfile?: UserSizeProfile | null;
   vibe: string;
   category: string;
   occasion: string;
@@ -95,6 +106,11 @@ export interface RecommendedProduct {
   shopifyProductId: string | null;
   storeUrl: string | null;
   addToCartUrl: string | null;
+  fitVerified?: boolean;
+  fitMatchLabel?: string | null;
+  sizeMatchScore?: number;
+  matchedSize?: string | null;
+  matchedVariantNumericId?: string | null;
 }
 
 export interface RecommendResponse {
