@@ -4,6 +4,7 @@ import Hero from "@/components/StyleConcierge/Hero";
 import StepCard from "@/components/StyleConcierge/StepCard";
 import CuratingLoader from "@/components/StyleConcierge/CuratingLoader";
 import ResultsSection from "@/components/StyleConcierge/ResultsSection";
+import { Sparkles } from "lucide-react";
 import { prepareValidatedPhoto } from "@/lib/photoValidation";
 import { getAvailableCategoryOptions, recommendStyle } from "@/lib/api";
 import {
@@ -122,6 +123,7 @@ const Index = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [curating, setCurating] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [showMenComingSoon, setShowMenComingSoon] = useState(false);
   const [bagCount, setBagCount] = useState(0);
   const [categoryOptions, setCategoryOptions] =
     useState<string[]>(ALL_CATEGORY_OPTIONS);
@@ -140,8 +142,9 @@ const Index = () => {
   const flowRef = useRef<HTMLDivElement>(null);
   const categoryOptionsCache = useRef<Record<string, string[]>>({});
 
-  const isCompact = activeStep >= 1 || showResults;
-  const shouldLockViewport = activeStep === 0 && !curating && !showResults;
+  const isCompact = activeStep >= 1 || showResults || showMenComingSoon;
+  const shouldLockViewport =
+    activeStep === 0 && !curating && !showResults && !showMenComingSoon;
 
   useEffect(() => {
     const unsubscribe = subscribeToAiBagCount(setBagCount);
@@ -210,6 +213,16 @@ const Index = () => {
       } as Answers;
 
       setAnswers(nextAnswers);
+
+      if (key === "gender") {
+        const isMen = value === "Men";
+        setShowMenComingSoon(isMen);
+        if (isMen) {
+          setCurating(false);
+          resetRecommendationState();
+          return;
+        }
+      }
 
       const nextStep = activeStep + 1;
 
@@ -289,6 +302,10 @@ const Index = () => {
       setPhotoStyleSnapshot(null);
     }
 
+    if (stepIndex === 0) {
+      setShowMenComingSoon(false);
+    }
+
     setActiveStep(stepIndex);
     setCurating(false);
     resetRecommendationState();
@@ -300,6 +317,7 @@ const Index = () => {
     setCurating(false);
     setCategoryOptions(ALL_CATEGORY_OPTIONS);
     setPhotoStyleSnapshot(null);
+    setShowMenComingSoon(false);
     resetRecommendationState();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -380,6 +398,36 @@ const Index = () => {
           })}
 
           {curating && <CuratingLoader text="Curating your edit…" />}
+
+          {showMenComingSoon && !curating && (
+            <section className="glass-card animate-fade-up rounded-2xl border border-primary/20 px-6 py-9 text-center md:px-10 md:py-12">
+              <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
+                <Sparkles size={22} />
+              </div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-primary">
+                The Men&apos;s Edit
+              </p>
+              <h2 className="mt-3 font-display text-2xl font-semibold text-foreground md:text-3xl">
+                Men&apos;s styling is coming soon.
+              </h2>
+              <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground md:text-base">
+                We&apos;re curating standout men&apos;s products and refining our
+                personalized fit and style matching. A sharper, smarter DRIPSTR
+                experience for men is on its way—and it will be worth the wait.
+              </p>
+              <div className="mt-7 flex flex-wrap justify-center gap-3">
+                <button
+                  onClick={() => handleEditStep(0)}
+                  className="chip-base chip-selected"
+                >
+                  Explore Women&apos;s styling
+                </button>
+                <button onClick={handleRestart} className="chip-base">
+                  Start over
+                </button>
+              </div>
+            </section>
+          )}
         </div>
 
         {showResults && !curating && (
