@@ -304,30 +304,41 @@ const StepCard = ({
     return Number.isFinite(parsed) ? parsed : null;
   };
 
-  const hasRequiredSizeBasics = heightCm.trim() !== "" && weightKg.trim() !== "";
+  const canContinuePhotoSize = Boolean(photoAnswer);
+  const hasAnySizeDetails = Boolean(
+    heightCm.trim() ||
+      weightKg.trim() ||
+      bust.trim() ||
+      waist.trim() ||
+      hip.trim() ||
+      length.trim() ||
+      preferredSize.trim(),
+  );
 
   const handleSizeSubmit = () => {
-    if (!hasRequiredSizeBasics) return;
+    if (!photoAnswer) return;
 
-    const sizeProfile: UserSizeProfile = {
-      heightCm: toNullableNumber(heightCm),
-      weightKg: toNullableNumber(weightKg),
-      bust: toNullableNumber(bust),
-      waist: toNullableNumber(waist),
-      hip: toNullableNumber(hip),
-      length: toNullableNumber(length),
-      preferredSize: preferredSize.trim() || null,
-    };
+    const sizeProfile: UserSizeProfile | null = hasAnySizeDetails
+      ? {
+          heightCm: toNullableNumber(heightCm),
+          weightKg: toNullableNumber(weightKg),
+          bust: toNullableNumber(bust),
+          waist: toNullableNumber(waist),
+          hip: toNullableNumber(hip),
+          length: toNullableNumber(length),
+          preferredSize: preferredSize.trim() || null,
+        }
+      : null;
 
     const sizeSummary = [
-      sizeProfile.heightCm ? `${sizeProfile.heightCm} cm` : "",
-      sizeProfile.weightKg ? `${sizeProfile.weightKg} kg` : "",
-      sizeProfile.preferredSize ? `Size ${sizeProfile.preferredSize}` : "",
+      sizeProfile?.heightCm ? `${sizeProfile.heightCm} cm` : "",
+      sizeProfile?.weightKg ? `${sizeProfile.weightKg} kg` : "",
+      sizeProfile?.preferredSize ? `Size ${sizeProfile.preferredSize}` : "",
     ]
       .filter(Boolean)
       .join(", ");
 
-    const answer = `${photoAnswer || "Photo not added"} - ${sizeSummary}`;
+    const answer = [photoAnswer, sizeSummary].filter(Boolean).join(" - ");
     if (onAnswerWithMetadata) {
       onAnswerWithMetadata(answer, { sizeProfile });
       return;
@@ -489,8 +500,8 @@ const StepCard = ({
                       Add your size details
                     </h4>
                     <p className="text-xs text-muted-foreground mt-1">
-                      These help match product measurements from the seller
-                      panel.
+                      Optional. Add these to improve size matching, or continue
+                      without them.
                     </p>
                   </div>
 
@@ -560,7 +571,7 @@ const StepCard = ({
                   <div className="flex justify-end mt-4">
                     <button
                       onClick={handleSizeSubmit}
-                      disabled={!hasRequiredSizeBasics}
+                      disabled={!canContinuePhotoSize}
                       className="shrink-0 h-10 rounded-full bg-primary px-4 flex items-center justify-center gap-2 text-primary-foreground disabled:opacity-30 hover:bg-primary/90 active:scale-95"
                       style={{ transition: "all 0.2s ease" }}
                     >

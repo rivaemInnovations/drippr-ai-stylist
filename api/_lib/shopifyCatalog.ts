@@ -91,10 +91,10 @@ function normalizeMeasurements(input: any) {
   };
 
   const measurements = {
-    bust: toNumOrNull(input.bust),
+    bust: toNumOrNull(input.bust ?? input.chest),
     waist: toNumOrNull(input.waist),
     hip: toNumOrNull(input.hip),
-    length: toNumOrNull(input.length),
+    length: toNumOrNull(input.length ?? input.inseam),
     unit: typeof input.unit === "string" ? input.unit : "in",
   };
 
@@ -278,7 +278,14 @@ const SHOPIFY_PRODUCTS_QUERY = `
             url
           }
         }
-        metafields(first: 10, namespace: "drippr_sizing") {
+        garmentSizing: metafields(first: 10, namespace: "garment_sizing") {
+          nodes {
+            key
+            value
+            type
+          }
+        }
+        legacySizing: metafields(first: 10, namespace: "drippr_sizing") {
           nodes {
             key
             value
@@ -296,7 +303,14 @@ const SHOPIFY_PRODUCTS_QUERY = `
               name
               value
             }
-            metafields(first: 10, namespace: "drippr_sizing") {
+            garmentSizing: metafields(first: 10, namespace: "garment_sizing") {
+              nodes {
+                key
+                value
+                type
+              }
+            }
+            legacySizing: metafields(first: 10, namespace: "drippr_sizing") {
               nodes {
                 key
                 value
@@ -352,7 +366,10 @@ function normalizeShopifyProduct(node: any): CatalogProductEntry | null {
       : [],
     availableForSale: Boolean(variant?.availableForSale),
     sku: typeof variant?.sku === "string" ? variant.sku : null,
-    measurements: normalizeMeasurementMetafields(variant?.metafields?.nodes),
+    measurements: normalizeMeasurementMetafields([
+      ...(variant?.legacySizing?.nodes || []),
+      ...(variant?.garmentSizing?.nodes || []),
+    ]),
   }));
 
   const liveVariantNumericId =
@@ -404,7 +421,10 @@ function normalizeShopifyProduct(node: any): CatalogProductEntry | null {
     imageUrls: imageCandidates,
     images: imageCandidates,
     image: imageCandidates[0] ?? null,
-    measurements: normalizeMeasurementMetafields(node?.metafields?.nodes),
+    measurements: normalizeMeasurementMetafields([
+      ...(node?.legacySizing?.nodes || []),
+      ...(node?.garmentSizing?.nodes || []),
+    ]),
     variantMeasurements,
     inventoryQty: soldOut ? 0 : 1,
     merchantId: null,
