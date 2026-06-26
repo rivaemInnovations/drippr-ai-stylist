@@ -1,11 +1,9 @@
 export type Gender = "Women" | "Men";
 export type PriceRange =
-  | "₹0 - ₹499"
-  | "₹500 - ₹999"
-  | "₹1,000 - ₹1,499"
-  | "₹1,500 - ₹1,999"
-  | "₹2,000 - ₹2,499"
-  | "₹2,500 & above";
+  | "\u20B90 - \u20B9999"
+  | "\u20B91,000 - \u20B91,999"
+  | "\u20B91,999 - \u20B92,499"
+  | "\u20B92,499 and above";
 
   export interface PhotoStyleSnapshot {
     skinToneLabel: string;
@@ -117,3 +115,4 @@ export interface RecommendResponse {
   occasionContext: OccasionContext;
   products: RecommendedProduct[];
 }
+

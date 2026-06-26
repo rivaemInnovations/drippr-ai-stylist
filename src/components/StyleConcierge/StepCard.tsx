@@ -57,8 +57,6 @@ const StepCard = ({
   const [weightKg, setWeightKg] = useState("");
   const [bust, setBust] = useState("");
   const [waist, setWaist] = useState("");
-  const [hip, setHip] = useState("");
-  const [length, setLength] = useState("");
   const [preferredSize, setPreferredSize] = useState("");
 
   const cardRef = useRef<HTMLDivElement>(null);
@@ -310,8 +308,6 @@ const StepCard = ({
       weightKg.trim() ||
       bust.trim() ||
       waist.trim() ||
-      hip.trim() ||
-      length.trim() ||
       preferredSize.trim(),
   );
 
@@ -324,8 +320,6 @@ const StepCard = ({
           weightKg: toNullableNumber(weightKg),
           bust: toNullableNumber(bust),
           waist: toNullableNumber(waist),
-          hip: toNullableNumber(hip),
-          length: toNullableNumber(length),
           preferredSize: preferredSize.trim() || null,
         }
       : null;
@@ -543,24 +537,6 @@ const StepCard = ({
                       className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
                     />
                     <input
-                      type="number"
-                      min="1"
-                      inputMode="decimal"
-                      value={hip}
-                      onChange={(e) => setHip(e.target.value)}
-                      placeholder="Hip (in)"
-                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
-                    />
-                    <input
-                      type="number"
-                      min="1"
-                      inputMode="decimal"
-                      value={length}
-                      onChange={(e) => setLength(e.target.value)}
-                      placeholder="Length (in)"
-                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
-                    />
-                    <input
                       value={preferredSize}
                       onChange={(e) => setPreferredSize(e.target.value)}
                       placeholder="Usual size"
@@ -569,15 +545,23 @@ const StepCard = ({
                   </div>
 
                   <div className="flex justify-end mt-4">
-                    <button
-                      onClick={handleSizeSubmit}
-                      disabled={!canContinuePhotoSize}
-                      className="shrink-0 h-10 rounded-full bg-primary px-4 flex items-center justify-center gap-2 text-primary-foreground disabled:opacity-30 hover:bg-primary/90 active:scale-95"
-                      style={{ transition: "all 0.2s ease" }}
+                    <span
+                      title={
+                        canContinuePhotoSize
+                          ? undefined
+                          : "First select Skip or upload a photo in Step 2a."
+                      }
                     >
-                      <Send size={16} />
-                      Continue
-                    </button>
+                      <button
+                        onClick={handleSizeSubmit}
+                        disabled={!canContinuePhotoSize}
+                        className="shrink-0 h-10 rounded-full bg-primary px-4 flex items-center justify-center gap-2 text-primary-foreground disabled:opacity-30 hover:bg-primary/90 active:scale-95"
+                        style={{ transition: "all 0.2s ease" }}
+                      >
+                        <Send size={16} />
+                        Continue
+                      </button>
+                    </span>
                   </div>
                 </div>
               )}

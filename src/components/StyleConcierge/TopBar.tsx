@@ -24,9 +24,12 @@ const TopBar = ({
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       <div className="h-14 flex items-center justify-between px-5 md:px-8 border-b border-border bg-background/80 backdrop-blur-xl">
-        <span className="font-display text-lg font-bold tracking-[0.2em] text-foreground">
+        <a
+          href="https://drippr.in/"
+          className="font-display text-lg font-bold tracking-[0.2em] text-foreground transition-opacity hover:opacity-80"
+        >
           DRIPPR
-        </span>
+        </a>
 
         {showProgress && (
           <div className="flex items-center gap-2">

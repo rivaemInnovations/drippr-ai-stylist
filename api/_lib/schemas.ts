@@ -2,12 +2,10 @@ import { z } from "zod";
 
 export const genderSchema = z.enum(["Women", "Men"]);
 export const priceRangeSchema = z.enum([
-  "₹0 - ₹499",
-  "₹500 - ₹999",
-  "₹1,000 - ₹1,499",
-  "₹1,500 - ₹1,999",
-  "₹2,000 - ₹2,499",
-  "₹2,500 & above",
+  "\u20B90 - \u20B9999",
+  "\u20B91,000 - \u20B91,999",
+  "\u20B91,999 - \u20B92,499",
+  "\u20B92,499 and above",
 ]);
 
 export const imageSignalsSchema = z.object({
@@ -153,3 +151,4 @@ export type MerchantProduct = z.infer<typeof merchantProductSchema>;
 export type RecommendedProduct = z.infer<typeof recommendedProductSchema>;
 export type RecommendResponse = z.infer<typeof recommendResponseSchema>;
 export type UserSizeProfile = NonNullable<RecommendRequest["sizeProfile"]>;
+
