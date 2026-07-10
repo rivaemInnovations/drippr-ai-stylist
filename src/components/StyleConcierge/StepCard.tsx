@@ -504,24 +504,6 @@ const StepCard = ({
                       type="number"
                       min="1"
                       inputMode="decimal"
-                      value={heightCm}
-                      onChange={(e) => setHeightCm(e.target.value)}
-                      placeholder="Height (cm)"
-                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
-                    />
-                    <input
-                      type="number"
-                      min="1"
-                      inputMode="decimal"
-                      value={weightKg}
-                      onChange={(e) => setWeightKg(e.target.value)}
-                      placeholder="Weight (kg)"
-                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
-                    />
-                    <input
-                      type="number"
-                      min="1"
-                      inputMode="decimal"
                       value={bust}
                       onChange={(e) => setBust(e.target.value)}
                       placeholder="Bust/Chest (in)"
@@ -537,9 +519,32 @@ const StepCard = ({
                       className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
                     />
                     <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={heightCm}
+                      onChange={(e) => setHeightCm(e.target.value)}
+                      placeholder="Height (cm)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={weightKg}
+                      onChange={(e) => setWeightKg(e.target.value)}
+                      placeholder="Weight (kg)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <p className="col-span-2 text-[11px] leading-relaxed text-muted-foreground">
+                      Tell us the size you usually wear, like M, L, XL, so we
+                      can tune your recommendations even when exact measurements
+                      are skipped.
+                    </p>
+                    <input
                       value={preferredSize}
                       onChange={(e) => setPreferredSize(e.target.value)}
-                      placeholder="Usual size"
+                      placeholder="Usual clothing size, e.g. M, L, XL"
                       className="col-span-2 bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
                     />
                   </div>
