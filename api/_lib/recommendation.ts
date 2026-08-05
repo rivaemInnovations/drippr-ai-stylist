@@ -32,7 +32,7 @@ const VIBE_KEYWORDS: Record<string, string[]> = {
   ],
 };
 
-export const ALL_CATEGORY_OPTIONS = [
+export const WOMEN_CATEGORY_OPTIONS = [
   "Tops & Dresses",
   "Cargo & Pants",
   "Tees",
@@ -42,6 +42,25 @@ export const ALL_CATEGORY_OPTIONS = [
   "Cord Set",
   "Athleisure",
 ] as const;
+
+export const MEN_CATEGORY_OPTIONS = [
+  "Tshirt & Shirts",
+  "Lifestyle & Bottoms",
+  "Athleisure",
+] as const;
+
+export const ALL_CATEGORY_OPTIONS = [
+  ...WOMEN_CATEGORY_OPTIONS,
+  ...MEN_CATEGORY_OPTIONS.filter(
+    (c) => !(WOMEN_CATEGORY_OPTIONS as readonly string[]).includes(c),
+  ),
+] as const;
+
+export function categoryOptionsForGender(gender: "Women" | "Men") {
+  return gender === "Men"
+    ? (MEN_CATEGORY_OPTIONS as readonly string[])
+    : (WOMEN_CATEGORY_OPTIONS as readonly string[]);
+}
 
 const CATEGORY_PRODUCT_TYPE_ALIASES: Record<string, string[]> = {
   "Tops & Dresses": [
@@ -101,6 +120,34 @@ const CATEGORY_PRODUCT_TYPE_ALIASES: Record<string, string[]> = {
     "gymwear",
     "trackwear",
   ],
+  "Tshirt & Shirts": [
+    "tee",
+    "tees",
+    "t shirt",
+    "tshirt",
+    "shirt",
+    "shirts",
+    "polo",
+    "henley",
+    "top",
+    "tops",
+  ],
+  "Lifestyle & Bottoms": [
+    "cargo",
+    "pant",
+    "pants",
+    "trouser",
+    "trousers",
+    "jogger",
+    "joggers",
+    "jeans",
+    "short",
+    "shorts",
+    "bottom",
+    "bottoms",
+    "chino",
+    "chinos",
+  ],
 };
 
 const CATEGORY_TITLE_TAG_ALIASES: Record<string, string[]> = {
@@ -148,6 +195,27 @@ const CATEGORY_TITLE_TAG_ALIASES: Record<string, string[]> = {
     "running",
     "track",
     "activewear",
+  ],
+  "Tshirt & Shirts": [
+    "tee",
+    "t shirt",
+    "tshirt",
+    "shirt",
+    "polo",
+    "henley",
+    "top",
+  ],
+  "Lifestyle & Bottoms": [
+    "cargo",
+    "pants",
+    "pant",
+    "trouser",
+    "jogger",
+    "jeans",
+    "short",
+    "shorts",
+    "bottom",
+    "chino",
   ],
 };
 
@@ -242,6 +310,35 @@ const CATEGORY_CONFLICT_ALIASES: Record<string, string[]> = {
     "jacket",
   ],
   Athleisure: ["dress", "blazer", "kurta"],
+  "Tshirt & Shirts": [
+    "pant",
+    "pants",
+    "trouser",
+    "trousers",
+    "jogger",
+    "joggers",
+    "jeans",
+    "cargo",
+    "jacket",
+    "hoodie",
+    "sweatshirt",
+    "dress",
+    "skirt",
+  ],
+  "Lifestyle & Bottoms": [
+    "tee",
+    "t shirt",
+    "tshirt",
+    "shirt",
+    "top",
+    "tops",
+    "jacket",
+    "blazer",
+    "hoodie",
+    "sweatshirt",
+    "dress",
+    "skirt",
+  ],
 };
 
 const JUNK_PATTERNS = [
@@ -323,15 +420,11 @@ function priceMatches(priceRange: PriceRange, price: number) {
     return price >= 0 && price <= 999;
   }
 
-  if (priceRange === "\u20B91,000 - \u20B91,999") {
-    return price >= 1000 && price <= 1999;
+  if (priceRange === "\u20B91,000 - \u20B92,499") {
+    return price >= 1000 && price <= 2499;
   }
 
-  if (priceRange === "\u20B91,999 - \u20B92,499") {
-    return price >= 1999 && price <= 2499;
-  }
-
-  return price >= 2499;
+  return price >= 2500;
 }
 function isTempStagedUrl(url: string | null | undefined) {
   if (!url) return false;
@@ -532,7 +625,7 @@ function numericValue(value: unknown) {
 const SIZE_TOLERANCE_INCHES = 2;
 
 function measurementFieldsForCategory(category: string) {
-  if (["Cargo & Pants", "Shorts & Skirts"].includes(category)) {
+  if (["Cargo & Pants", "Shorts & Skirts", "Lifestyle & Bottoms"].includes(category)) {
     return ["waist", "hip", "length"] as const;
   }
 
@@ -678,6 +771,8 @@ export function getAvailableCategories(args: {
   gender: "Women" | "Men";
   vibe: string;
 }) {
+  const genderCategories = categoryOptionsForGender(args.gender);
+
   const baseEligible = args.products.filter((product) => {
     if (!inventoryAllowed(product)) return false;
     if (isJunkProduct(product)) return false;
@@ -690,7 +785,7 @@ export function getAvailableCategories(args: {
   );
   const source = vibeFiltered.length > 0 ? vibeFiltered : baseEligible;
 
-  return ALL_CATEGORY_OPTIONS.filter((category) =>
+  return genderCategories.filter((category) =>
     source.some((product) => {
       const signals = categorySignals(product, category);
       return signals.strictMatch || signals.titleTagMatch;

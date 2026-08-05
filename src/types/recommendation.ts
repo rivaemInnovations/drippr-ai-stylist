@@ -1,9 +1,8 @@
 export type Gender = "Women" | "Men";
 export type PriceRange =
   | "\u20B90 - \u20B9999"
-  | "\u20B91,000 - \u20B91,999"
-  | "\u20B91,999 - \u20B92,499"
-  | "\u20B92,499 and above";
+  | "\u20B91,000 - \u20B92,499"
+  | "\u20B92,500 and above";
 
   export interface PhotoStyleSnapshot {
     skinToneLabel: string;

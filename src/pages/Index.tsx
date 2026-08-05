@@ -4,7 +4,6 @@ import Hero from "@/components/StyleConcierge/Hero";
 import StepCard from "@/components/StyleConcierge/StepCard";
 import CuratingLoader from "@/components/StyleConcierge/CuratingLoader";
 import ResultsSection from "@/components/StyleConcierge/ResultsSection";
-import { Sparkles } from "lucide-react";
 import { prepareValidatedPhoto } from "@/lib/photoValidation";
 import { getAvailableCategoryOptions, recommendStyle } from "@/lib/api";
 import {
@@ -46,7 +45,7 @@ const INITIAL: Answers = {
   priceRange: null,
 };
 
-const ALL_CATEGORY_OPTIONS = [
+const WOMEN_CATEGORY_OPTIONS = [
   "Tops & Dresses",
   "Cargo & Pants",
   "Tees",
@@ -56,6 +55,17 @@ const ALL_CATEGORY_OPTIONS = [
   "Cord Set",
   "Athleisure",
 ];
+
+const MEN_CATEGORY_OPTIONS = [
+  "Tshirt & Shirts",
+  "Lifestyle & Bottoms",
+  "Athleisure",
+];
+
+function categoryOptionsForGender(gender: Gender | null): string[] {
+  if (gender === "Men") return MEN_CATEGORY_OPTIONS;
+  return WOMEN_CATEGORY_OPTIONS;
+}
 
 const STEPS = [
   {
@@ -91,7 +101,7 @@ const STEPS = [
     key: "category" as const,
     stepNumber: 4,
     question: "Choose a category",
-    options: ALL_CATEGORY_OPTIONS,
+    options: WOMEN_CATEGORY_OPTIONS,
     type: "chips" as const,
   },
   {
@@ -108,9 +118,8 @@ const STEPS = [
     question: "Choose your budget",
     options: [
       "\u20B90 - \u20B9999",
-      "\u20B91,000 - \u20B91,999",
-      "\u20B91,999 - \u20B92,499",
-      "\u20B92,499 and above",
+      "\u20B91,000 - \u20B92,499",
+      "\u20B92,500 and above",
     ],
     type: "chips" as const,
   },
@@ -121,10 +130,9 @@ const Index = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [curating, setCurating] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [showMenComingSoon, setShowMenComingSoon] = useState(false);
   const [bagCount, setBagCount] = useState(0);
   const [categoryOptions, setCategoryOptions] =
-    useState<string[]>(ALL_CATEGORY_OPTIONS);
+    useState<string[]>(WOMEN_CATEGORY_OPTIONS);
   const [photoStyleSnapshot, setPhotoStyleSnapshot] =
     useState<PhotoStyleSnapshot | null>(null);
 
@@ -140,9 +148,9 @@ const Index = () => {
   const flowRef = useRef<HTMLDivElement>(null);
   const categoryOptionsCache = useRef<Record<string, string[]>>({});
 
-  const isCompact = activeStep >= 1 || showResults || showMenComingSoon;
+  const isCompact = activeStep >= 1 || showResults;
   const shouldLockViewport =
-    activeStep === 0 && !curating && !showResults && !showMenComingSoon;
+    activeStep === 0 && !curating && !showResults;
 
   useEffect(() => {
     const unsubscribe = subscribeToAiBagCount(setBagCount);
@@ -213,18 +221,13 @@ const Index = () => {
       setAnswers(nextAnswers);
 
       if (key === "gender") {
-        const isMen = value === "Men";
-        setShowMenComingSoon(isMen);
-        if (isMen) {
-          setCurating(false);
-          resetRecommendationState();
-          return;
-        }
+        setCategoryOptions(categoryOptionsForGender(value as Gender));
       }
 
       const nextStep = activeStep + 1;
 
       if (key === "vibe" && nextAnswers.gender) {
+        const fallbackCategories = categoryOptionsForGender(nextAnswers.gender);
         const cacheKey = `${nextAnswers.gender}__${value}`;
         const cached = categoryOptionsCache.current[cacheKey];
 
@@ -237,12 +240,12 @@ const Index = () => {
           })
             .then((options) => {
               const finalOptions =
-                options.length > 0 ? options : ALL_CATEGORY_OPTIONS;
+                options.length > 0 ? options : fallbackCategories;
               categoryOptionsCache.current[cacheKey] = finalOptions;
               setCategoryOptions(finalOptions);
             })
             .catch(() => {
-              setCategoryOptions(ALL_CATEGORY_OPTIONS);
+              setCategoryOptions(fallbackCategories);
             });
         }
       }
@@ -289,19 +292,17 @@ const Index = () => {
       if (stepIndex <= 1) {
         updated.sizeProfile = null;
       }
+
+      if (stepIndex <= 3) {
+        const gender = stepIndex === 0 ? null : (updated.gender as Gender | null);
+        setCategoryOptions(categoryOptionsForGender(gender));
+      }
+
       return updated as Answers;
     });
 
-    if (stepIndex <= 3) {
-      setCategoryOptions(ALL_CATEGORY_OPTIONS);
-    }
-
     if (stepIndex <= 1) {
       setPhotoStyleSnapshot(null);
-    }
-
-    if (stepIndex === 0) {
-      setShowMenComingSoon(false);
     }
 
     setActiveStep(stepIndex);
@@ -313,9 +314,8 @@ const Index = () => {
     setAnswers(INITIAL);
     setActiveStep(0);
     setCurating(false);
-    setCategoryOptions(ALL_CATEGORY_OPTIONS);
+    setCategoryOptions(WOMEN_CATEGORY_OPTIONS);
     setPhotoStyleSnapshot(null);
-    setShowMenComingSoon(false);
     resetRecommendationState();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -396,36 +396,6 @@ const Index = () => {
           })}
 
           {curating && <CuratingLoader text="Curating your edit…" />}
-
-          {showMenComingSoon && !curating && (
-            <section className="glass-card animate-fade-up rounded-2xl border border-primary/20 px-6 py-9 text-center md:px-10 md:py-12">
-              <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
-                <Sparkles size={22} />
-              </div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-primary">
-                The Men&apos;s Edit
-              </p>
-              <h2 className="mt-3 font-display text-2xl font-semibold text-foreground md:text-3xl">
-                Men&apos;s styling is coming soon.
-              </h2>
-              <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground md:text-base">
-                We&apos;re curating standout men&apos;s products and refining our
-                personalized fit and style matching. A sharper, smarter DRIPSTR
-                experience for men is on its way—and it will be worth the wait.
-              </p>
-              <div className="mt-7 flex flex-wrap justify-center gap-3">
-                <button
-                  onClick={() => handleEditStep(0)}
-                  className="chip-base chip-selected"
-                >
-                  Explore Women&apos;s styling
-                </button>
-                <button onClick={handleRestart} className="chip-base">
-                  Start over
-                </button>
-              </div>
-            </section>
-          )}
         </div>
 
         {showResults && !curating && (
