@@ -1,0 +1,614 @@
+import { useState, useRef, useEffect } from "react";
+import TypewriterText from "./TypewriterText";
+import { Upload, Camera, Pencil, Send, Loader2 } from "lucide-react";
+import type { UserSizeProfile } from "@/types/recommendation";
+
+type PhotoStyleSnapshot = {
+  skinToneLabel: string;
+  bodyFrameLabel: string;
+  poseLabel: string;
+};
+
+interface StepCardProps {
+  stepNumber: number;
+  question: string;
+  helperText?: string;
+  options?: string[];
+  type?: "chips" | "photo" | "photo-size" | "prompt";
+  answered?: string | null;
+  onAnswer: (answer: string) => void;
+  onAnswerWithMetadata?: (
+    answer: string,
+    metadata: { sizeProfile?: UserSizeProfile | null },
+  ) => void;
+  onEdit?: () => void;
+  isActive: boolean;
+  analysisText?: string;
+  onPhotoSelected?: (file: File) => Promise<string>;
+  allowPhotoSkip?: boolean;
+  photoStyleSnapshot?: PhotoStyleSnapshot | null;
+}
+
+const StepCard = ({
+  stepNumber,
+  question,
+  helperText,
+  options,
+  type = "chips",
+  answered,
+  onAnswer,
+  onAnswerWithMetadata,
+  onEdit,
+  isActive,
+  analysisText,
+  onPhotoSelected,
+  allowPhotoSkip = false,
+  photoStyleSnapshot = null,
+}: StepCardProps) => {
+  const [questionDone, setQuestionDone] = useState(false);
+  const [helperDone, setHelperDone] = useState(!helperText);
+  const [analysisDone, setAnalysisDone] = useState(!analysisText);
+  const [promptValue, setPromptValue] = useState("");
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoAnswer, setPhotoAnswer] = useState<string | null>(null);
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [bust, setBust] = useState("");
+  const [waist, setWaist] = useState("");
+  const [preferredSize, setPreferredSize] = useState("");
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
+  const promptTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isActive || !cardRef.current) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const card = cardRef.current;
+      if (!card) return;
+
+      const rect = card.getBoundingClientRect();
+      const topBoundary = 88;
+      const bottomBoundary = window.innerHeight - 24;
+      const isFullyVisible =
+        rect.top >= topBoundary && rect.bottom <= bottomBoundary;
+
+      if (!isFullyVisible) {
+        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isActive]);
+
+  useEffect(() => {
+    if (isEditingPrompt && editInputRef.current) {
+      editInputRef.current.focus();
+    }
+  }, [isEditingPrompt]);
+
+  useEffect(() => {
+    if (type === "prompt" && isActive && promptTextareaRef.current) {
+      promptTextareaRef.current.focus();
+    }
+  }, [type, isActive]);
+
+  useEffect(() => {
+    if (answered) {
+      setPromptValue(answered);
+    }
+  }, [answered]);
+
+  if (answered !== undefined && answered !== null) {
+    const isPromptType = type === "prompt";
+
+    return (
+      <div
+        ref={cardRef}
+        className="glass-card smooth-layer rounded-xl px-5 py-4 opacity-60 hover:opacity-80"
+        style={{ transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)" }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <span className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase font-medium shrink-0 mt-1">
+              Step {stepNumber}
+            </span>
+
+            <div className="min-w-0 flex-1">
+              {isPromptType && isEditingPrompt ? (
+                <form
+                  className="flex-1 flex items-center gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (promptValue.trim()) {
+                      onAnswer(promptValue.trim());
+                      setIsEditingPrompt(false);
+                    }
+                  }}
+                >
+                  <input
+                    ref={editInputRef}
+                    value={promptValue}
+                    onChange={(e) => setPromptValue(e.target.value)}
+                    className="flex-1 bg-transparent border-b border-border text-sm text-foreground font-medium outline-none focus:border-primary"
+                  />
+                  <button
+                    type="submit"
+                    className="text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <Send size={14} />
+                  </button>
+                </form>
+              ) : (
+                <span className="text-sm text-foreground font-medium block truncate">
+                  {answered}
+                </span>
+              )}
+
+              {(type === "photo" || type === "photo-size") &&
+                photoStyleSnapshot && (
+                <div className="mt-3">
+                  <div
+                    className="rounded-2xl p-3 md:p-4"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(255,122,47,0.08), rgba(255,255,255,0.03))",
+                      border: "1px solid rgba(255,122,47,0.14)",
+                      backdropFilter: "blur(10px)",
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-[10px] tracking-[0.24em] uppercase text-primary font-semibold">
+                          Style Snapshot
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          AI-read visual cues from your photo
+                        </p>
+                      </div>
+
+                      <div
+                        className="h-9 w-9 rounded-full flex items-center justify-center shrink-0"
+                        style={{
+                          background: "rgba(255,122,47,0.10)",
+                          border: "1px solid rgba(255,122,47,0.18)",
+                        }}
+                      >
+                        ✦
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div
+                        className="rounded-2xl px-4 py-3"
+                        style={{
+                          background: "rgba(255,255,255,0.03)",
+                          border: "1px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        <p className="text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-medium">
+                          Skin Tone
+                        </p>
+                        <p className="text-sm font-semibold text-foreground mt-1.5">
+                          {photoStyleSnapshot.skinToneLabel}
+                        </p>
+                      </div>
+
+                      <div
+                        className="rounded-2xl px-4 py-3"
+                        style={{
+                          background: "rgba(255,255,255,0.03)",
+                          border: "1px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        <p className="text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-medium">
+                          Body Frame
+                        </p>
+                        <p className="text-sm font-semibold text-foreground mt-1.5">
+                          {photoStyleSnapshot.bodyFrameLabel}
+                        </p>
+                      </div>
+
+                      <div
+                        className="rounded-2xl px-4 py-3"
+                        style={{
+                          background: "rgba(255,255,255,0.03)",
+                          border: "1px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        <p className="text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-medium">
+                          Pose
+                        </p>
+                        <p className="text-sm font-semibold text-foreground mt-1.5">
+                          {photoStyleSnapshot.poseLabel}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {onEdit && !isEditingPrompt && (
+            <button
+              onClick={() => {
+                if (isPromptType) {
+                  setPromptValue(answered);
+                  setIsEditingPrompt(true);
+                } else {
+                  onEdit();
+                }
+              }}
+              className="text-muted-foreground hover:text-primary shrink-0 p-1 rounded-md hover:bg-secondary/50"
+              style={{ transition: "all 0.2s ease" }}
+            >
+              <Pencil size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!isActive) return null;
+
+  const handlePhotoSkip = () => {
+    setPhotoError(null);
+    if (type === "photo-size") {
+      setPhotoAnswer("Skipped photo validation");
+      return;
+    }
+    onAnswer("Skipped photo validation");
+  };
+
+  const handleFilePick = async (file: File | undefined) => {
+    if (!file || !onPhotoSelected) return;
+
+    try {
+      setPhotoError(null);
+      setIsProcessingPhoto(true);
+      const summary = await onPhotoSelected(file);
+      if (type === "photo-size") {
+        setPhotoAnswer(summary);
+        return;
+      }
+      onAnswer(summary);
+    } catch (error) {
+      setPhotoError(
+        error instanceof Error ? error.message : "Photo processing failed",
+      );
+    } finally {
+      setIsProcessingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+    }
+  };
+
+  const handlePromptSubmit = () => {
+    if (promptValue.trim()) {
+      onAnswer(promptValue.trim());
+    }
+  };
+
+  const toNullableNumber = (value: string) => {
+    if (!value.trim()) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const canContinuePhotoSize = Boolean(photoAnswer);
+  const hasAnySizeDetails = Boolean(
+    heightCm.trim() ||
+      weightKg.trim() ||
+      bust.trim() ||
+      waist.trim() ||
+      preferredSize.trim(),
+  );
+
+  const handleSizeSubmit = () => {
+    if (!photoAnswer) return;
+
+    const sizeProfile: UserSizeProfile | null = hasAnySizeDetails
+      ? {
+          heightCm: toNullableNumber(heightCm),
+          weightKg: toNullableNumber(weightKg),
+          bust: toNullableNumber(bust),
+          waist: toNullableNumber(waist),
+          preferredSize: preferredSize.trim() || null,
+        }
+      : null;
+
+    const sizeSummary = [
+      sizeProfile?.heightCm ? `${sizeProfile.heightCm} cm` : "",
+      sizeProfile?.weightKg ? `${sizeProfile.weightKg} kg` : "",
+      sizeProfile?.preferredSize ? `Size ${sizeProfile.preferredSize}` : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    const answer = [photoAnswer, sizeSummary].filter(Boolean).join(" - ");
+    if (onAnswerWithMetadata) {
+      onAnswerWithMetadata(answer, { sizeProfile });
+      return;
+    }
+
+    onAnswer(answer);
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      className="glass-card smooth-layer rounded-2xl p-6 md:p-8 animate-fade-up"
+      style={{ animationDuration: "0.5s" }}
+    >
+      <span className="text-[10px] tracking-[0.3em] text-primary uppercase font-semibold mb-4 block">
+        Step {stepNumber}
+      </span>
+
+      {analysisText && (
+        <div
+          className="mb-4 px-4 py-3.5 rounded-2xl"
+          style={{
+            background:
+              "linear-gradient(135deg, hsla(18,100%,50%,0.08), hsla(30,100%,60%,0.05))",
+            border: "1px solid hsla(18,100%,50%,0.12)",
+          }}
+        >
+          <p className="text-sm text-foreground/90 font-medium leading-relaxed">
+            <TypewriterText
+              text={analysisText}
+              speed={20}
+              onComplete={() => setAnalysisDone(true)}
+            />
+          </p>
+        </div>
+      )}
+
+      {(analysisDone || !analysisText) && (
+        <>
+          <h3
+            className="text-xl md:text-2xl font-display font-semibold text-foreground mb-1"
+            style={{ lineHeight: "1.2" }}
+          >
+            <TypewriterText
+              text={question}
+              speed={30}
+              onComplete={() => setQuestionDone(true)}
+            />
+          </h3>
+
+          {helperText && questionDone && (
+            <p className="text-sm text-muted-foreground mt-2 mb-4">
+              <TypewriterText
+                text={helperText}
+                speed={25}
+                onComplete={() => setHelperDone(true)}
+              />
+            </p>
+          )}
+
+          {questionDone && helperDone && type === "chips" && options && (
+            <div
+              className="flex flex-wrap gap-3 mt-5 animate-fade-up"
+              style={{ animationDuration: "0.4s" }}
+            >
+              {options.map((opt, i) => (
+                <button
+                  key={opt}
+                  onClick={() => onAnswer(opt)}
+                  className="chip-base hover:border-primary/40 active:scale-95"
+                  style={{ animationDelay: `${i * 40}ms` }}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {questionDone &&
+            helperDone &&
+            (type === "photo" || type === "photo-size") && (
+            <div
+              className="mt-5 animate-fade-up"
+              style={{ animationDuration: "0.4s" }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                className="hidden"
+                onChange={(e) => handleFilePick(e.target.files?.[0])}
+              />
+
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="user"
+                className="hidden"
+                onChange={(e) => handleFilePick(e.target.files?.[0])}
+              />
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isProcessingPhoto}
+                  className="chip-base chip-selected flex items-center gap-2 disabled:opacity-60"
+                >
+                  {isProcessingPhoto ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Upload size={14} />
+                  )}
+                  Upload photo
+                </button>
+
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isProcessingPhoto}
+                  className="chip-base flex items-center gap-2 disabled:opacity-60"
+                >
+                  {isProcessingPhoto ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Camera size={14} />
+                  )}
+                  Open camera
+                </button>
+
+                {allowPhotoSkip && (
+                  <button
+                    onClick={handlePhotoSkip}
+                    disabled={isProcessingPhoto}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4 disabled:opacity-50"
+                  >
+                    Skip
+                  </button>
+                )}
+              </div>
+
+              <p className="text-[11px] text-muted-foreground mt-3 opacity-60">
+                Photo is used only to verify full-body upload and show a quick
+                style snapshot.
+              </p>
+
+              {photoError && (
+                <p className="text-sm text-red-400 mt-3 leading-relaxed">
+                  {photoError}
+                </p>
+              )}
+
+              {type === "photo-size" && (
+                <div className="mt-6 border-t border-white/10 pt-5">
+                  <div className="mb-4">
+                    <p className="text-[10px] tracking-[0.24em] uppercase text-primary font-semibold">
+                      Step 2b
+                    </p>
+                    <h4 className="text-lg font-display font-semibold text-foreground mt-1">
+                      Add your size details
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Optional. Add these to improve size matching, or continue
+                      without them.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={bust}
+                      onChange={(e) => setBust(e.target.value)}
+                      placeholder="Bust/Chest (in)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={waist}
+                      onChange={(e) => setWaist(e.target.value)}
+                      placeholder="Waist (in)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={heightCm}
+                      onChange={(e) => setHeightCm(e.target.value)}
+                      placeholder="Height (cm)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="decimal"
+                      value={weightKg}
+                      onChange={(e) => setWeightKg(e.target.value)}
+                      placeholder="Weight (kg)"
+                      className="bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                    <p className="col-span-2 text-[11px] leading-relaxed text-muted-foreground">
+                      Tell us the size you usually wear, like M, L, XL, so we
+                      can tune your recommendations even when exact measurements
+                      are skipped.
+                    </p>
+                    <input
+                      value={preferredSize}
+                      onChange={(e) => setPreferredSize(e.target.value)}
+                      placeholder="Usual clothing size, e.g. M, L, XL"
+                      className="col-span-2 bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+                    />
+                  </div>
+
+                  <div className="flex justify-end mt-4">
+                    <span
+                      title={
+                        canContinuePhotoSize
+                          ? undefined
+                          : "First select Skip or upload a photo in Step 2a."
+                      }
+                    >
+                      <button
+                        onClick={handleSizeSubmit}
+                        disabled={!canContinuePhotoSize}
+                        className="shrink-0 h-10 rounded-full bg-primary px-4 flex items-center justify-center gap-2 text-primary-foreground disabled:opacity-30 hover:bg-primary/90 active:scale-95"
+                        style={{ transition: "all 0.2s ease" }}
+                      >
+                        <Send size={16} />
+                        Continue
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {questionDone && helperDone && type === "prompt" && (
+            <div
+              className="mt-5 animate-fade-up"
+              style={{ animationDuration: "0.4s" }}
+            >
+              <div className="space-y-3">
+                <textarea
+                  ref={promptTextareaRef}
+                  value={promptValue}
+                  onChange={(e) => setPromptValue(e.target.value)}
+                  placeholder="e.g. college fest at night during summer, office lunch, wedding guest look..."
+                  className="w-full min-h-[120px] bg-[hsla(0,0%,10%,0.6)] border border-[hsla(0,0%,25%,0.5)] rounded-2xl px-5 py-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50 resize-none"
+                  style={{
+                    transition: "border-color 0.3s ease",
+                    backdropFilter: "blur(8px)",
+                  }}
+                />
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={handlePromptSubmit}
+                    disabled={!promptValue.trim()}
+                    className="shrink-0 h-10 rounded-full bg-primary px-4 flex items-center justify-center gap-2 text-primary-foreground disabled:opacity-30 hover:bg-primary/90 active:scale-95"
+                    style={{ transition: "all 0.2s ease" }}
+                  >
+                    <Send size={16} />
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default StepCard;

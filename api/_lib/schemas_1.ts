@@ -62,7 +62,7 @@ export const recommendRequestSchema = z.object({
     .optional(),
   vibe: z.string().min(1).max(80),
   category: z.string().min(1).max(120),
-  occasion: z.string().trim().min(1).max(800),
+  occasion: z.string().trim().min(2).max(800),
   priceRange: priceRangeSchema,
 });
 

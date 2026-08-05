@@ -196,10 +196,14 @@ const Index = () => {
       setOccasionContext(response.occasionContext);
       setRecommendedProducts(response.products);
       setShowResults(true);
-    } catch {
+    } catch (error) {
       setRecommendedProducts([]);
       setOccasionContext(null);
-      setRecommendationError(null);
+      setRecommendationError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while creating your edit.",
+      );
       setShowResults(true);
     } finally {
       setCurating(false);

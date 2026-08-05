@@ -1,0 +1,66 @@
+import type {
+  Gender,
+  RecommendRequest,
+  RecommendResponse,
+} from "@/types/recommendation";
+
+function getApiBaseUrl() {
+  return (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+}
+
+async function readError(response: Response) {
+  const raw = await response.text();
+
+  if (!raw) {
+    return `Request failed with status ${response.status}`;
+  }
+
+  try {
+    const data = JSON.parse(raw);
+    return (
+      data?.error ||
+      data?.message ||
+      `Request failed with status ${response.status}`
+    );
+  } catch {
+    return raw.slice(0, 400);
+  }
+}
+
+export async function recommendStyle(
+  payload: RecommendRequest,
+): Promise<RecommendResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/api/recommend`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  return response.json();
+}
+
+export async function getAvailableCategoryOptions(payload: {
+  gender: Gender;
+  vibe: string;
+}): Promise<string[]> {
+  const response = await fetch(`${getApiBaseUrl()}/api/category-options`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  const data = await response.json();
+  return Array.isArray(data?.categories) ? data.categories : [];
+}
