@@ -1,12 +1,12 @@
 import {
   scoreProducts,
-  VIBE_COLLECTION_HANDLES,
-  CATEGORY_COLLECTION_HANDLES,
+  VIBE_COLLECTION_TITLES,
+  CATEGORY_COLLECTION_TITLES,
   filterCollectionIntersection,
 } from "./_lib/recommendation.js";
 import {
   addToCartUrlForVariant,
-  fetchProductsByCollectionHandle,
+  fetchProductsByCollectionTitle,
 } from "./_lib/shopifyCatalog.js";
 import {
   recommendRequestSchema,
@@ -44,26 +44,31 @@ export default async function handler(req: any, res: any) {
   try {
     const body = recommendRequestSchema.parse(getBody(req));
 
-    /* ── Resolve collection handles ── */
-    const vibeHandle = VIBE_COLLECTION_HANDLES[body.vibe];
-    const categoryHandle = CATEGORY_COLLECTION_HANDLES[body.category];
+    /* ── Resolve collection titles ── */
+    const vibeTitle = VIBE_COLLECTION_TITLES[body.vibe];
+    const categoryTitle = CATEGORY_COLLECTION_TITLES[body.category];
 
-    if (!vibeHandle) {
+    if (!vibeTitle) {
       return res.status(400).json({
-        error: `Unknown vibe: "${body.vibe}". Valid options: ${Object.keys(VIBE_COLLECTION_HANDLES).join(", ")}`,
+        error: `Unknown vibe: "${body.vibe}". Valid options: ${Object.keys(VIBE_COLLECTION_TITLES).join(", ")}`,
       });
     }
-    if (!categoryHandle) {
+    if (!categoryTitle) {
       return res.status(400).json({
-        error: `Unknown category: "${body.category}". Valid options: ${Object.keys(CATEGORY_COLLECTION_HANDLES).join(", ")}`,
+        error: `Unknown category: "${body.category}". Valid options: ${Object.keys(CATEGORY_COLLECTION_TITLES).join(", ")}`,
       });
     }
 
-    /* ── Fetch both collections in parallel ── */
+    /* ── Fetch both collections in parallel (by title search) ── */
     const [vibeEntries, categoryEntries] = await Promise.all([
-      fetchProductsByCollectionHandle(vibeHandle),
-      fetchProductsByCollectionHandle(categoryHandle),
+      fetchProductsByCollectionTitle(vibeTitle),
+      fetchProductsByCollectionTitle(categoryTitle),
     ]);
+
+    console.log(
+      `[recommend] Fetched — vibe "${vibeTitle}": ${vibeEntries.length} products, ` +
+        `category "${categoryTitle}": ${categoryEntries.length} products`,
+    );
 
     /* ── Intersect + filter ── */
     const vibeProducts = vibeEntries.map((e) => e.product);
@@ -148,11 +153,11 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({
       ...response,
       debugApplied: {
-        engineVersion: "collection-intersection-v1",
+        engineVersion: "collection-intersection-v2",
         category: body.category,
-        categoryHandle,
+        categoryCollection: categoryTitle,
         vibe: body.vibe,
-        vibeHandle,
+        vibeCollection: vibeTitle,
         priceRange: body.priceRange,
         vibeCollectionCount: pool.counts.vibeCollectionCount,
         categoryCollectionCount: pool.counts.categoryCollectionCount,
@@ -162,6 +167,7 @@ export default async function handler(req: any, res: any) {
       },
     });
   } catch (error) {
+    console.error("[recommend] Error:", error);
     return res.status(500).json({
       error:
         error instanceof Error
