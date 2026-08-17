@@ -7,6 +7,10 @@ import type {
   UserSizeProfile,
 } from "./schemas.js";
 
+/* ------------------------------------------------------------------ */
+/*  Vibe keywords                                                      */
+/* ------------------------------------------------------------------ */
+
 const VIBE_KEYWORDS: Record<string, string[]> = {
   Streetwear: [
     "streetwear",
@@ -32,28 +36,30 @@ const VIBE_KEYWORDS: Record<string, string[]> = {
   ],
 };
 
+/* ------------------------------------------------------------------ */
+/*  Category constants (updated names)                                 */
+/* ------------------------------------------------------------------ */
+
 export const WOMEN_CATEGORY_OPTIONS = [
   "Tops & Dresses",
   "Cargo & Pants",
   "Tees",
   "Shorts & Skirts",
-  "Sweatshirts & Hoodies",
+  "Sweatshirt & Hoods",
   "Jackets",
-  "Cord Set",
-  "Athleisure",
+  "Co-rd Set",
+  "Womens Athleisure",
 ] as const;
 
 export const MEN_CATEGORY_OPTIONS = [
-  "Tshirt & Shirts",
-  "Lifestyle & Bottoms",
-  "Athleisure",
+  "Mens T-Shirt & Upper",
+  "Mens Lifestyle & Bottoms",
+  "Mens Athleisure",
 ] as const;
 
 export const ALL_CATEGORY_OPTIONS = [
   ...WOMEN_CATEGORY_OPTIONS,
-  ...MEN_CATEGORY_OPTIONS.filter(
-    (c) => !(WOMEN_CATEGORY_OPTIONS as readonly string[]).includes(c),
-  ),
+  ...MEN_CATEGORY_OPTIONS,
 ] as const;
 
 export function categoryOptionsForGender(gender: "Women" | "Men") {
@@ -61,6 +67,10 @@ export function categoryOptionsForGender(gender: "Women" | "Men") {
     ? (MEN_CATEGORY_OPTIONS as readonly string[])
     : (WOMEN_CATEGORY_OPTIONS as readonly string[]);
 }
+
+/* ------------------------------------------------------------------ */
+/*  Category alias maps (keys renamed to match new category names)     */
+/* ------------------------------------------------------------------ */
 
 const CATEGORY_PRODUCT_TYPE_ALIASES: Record<string, string[]> = {
   "Tops & Dresses": [
@@ -86,7 +96,7 @@ const CATEGORY_PRODUCT_TYPE_ALIASES: Record<string, string[]> = {
   ],
   Tees: ["tee", "tees", "t shirt", "tshirt", "polo"],
   "Shorts & Skirts": ["short", "shorts", "skirt", "skirts"],
-  "Sweatshirts & Hoodies": [
+  "Sweatshirt & Hoods": [
     "sweatshirt",
     "sweatshirts",
     "hoodie",
@@ -112,15 +122,15 @@ const CATEGORY_PRODUCT_TYPE_ALIASES: Record<string, string[]> = {
     "windbreaker",
     "bomber",
   ],
-  "Cord Set": ["cord set", "co ord", "coord", "set", "sets", "kurta set"],
-  Athleisure: [
+  "Co-rd Set": ["cord set", "co ord", "coord", "set", "sets", "kurta set"],
+  "Womens Athleisure": [
     "athleisure",
     "sportswear",
     "activewear",
     "gymwear",
     "trackwear",
   ],
-  "Tshirt & Shirts": [
+  "Mens T-Shirt & Upper": [
     "tee",
     "tees",
     "t shirt",
@@ -132,7 +142,7 @@ const CATEGORY_PRODUCT_TYPE_ALIASES: Record<string, string[]> = {
     "top",
     "tops",
   ],
-  "Lifestyle & Bottoms": [
+  "Mens Lifestyle & Bottoms": [
     "cargo",
     "pant",
     "pants",
@@ -147,6 +157,13 @@ const CATEGORY_PRODUCT_TYPE_ALIASES: Record<string, string[]> = {
     "bottoms",
     "chino",
     "chinos",
+  ],
+  "Mens Athleisure": [
+    "athleisure",
+    "sportswear",
+    "activewear",
+    "gymwear",
+    "trackwear",
   ],
 };
 
@@ -163,7 +180,7 @@ const CATEGORY_TITLE_TAG_ALIASES: Record<string, string[]> = {
   "Cargo & Pants": ["cargo", "pants", "pant", "trouser", "jogger", "jeans"],
   Tees: ["tee", "t shirt", "tshirt", "polo"],
   "Shorts & Skirts": ["short", "shorts", "skirt"],
-  "Sweatshirts & Hoodies": [
+  "Sweatshirt & Hoods": [
     "sweatshirt",
     "hoodie",
     "pullover",
@@ -186,8 +203,8 @@ const CATEGORY_TITLE_TAG_ALIASES: Record<string, string[]> = {
     "bomber",
     "denim jacket",
   ],
-  "Cord Set": ["co ord", "coord", "cord set", "set", "kurta set"],
-  Athleisure: [
+  "Co-rd Set": ["co ord", "coord", "cord set", "set", "kurta set"],
+  "Womens Athleisure": [
     "athleisure",
     "sport",
     "sports",
@@ -196,7 +213,7 @@ const CATEGORY_TITLE_TAG_ALIASES: Record<string, string[]> = {
     "track",
     "activewear",
   ],
-  "Tshirt & Shirts": [
+  "Mens T-Shirt & Upper": [
     "tee",
     "t shirt",
     "tshirt",
@@ -205,7 +222,7 @@ const CATEGORY_TITLE_TAG_ALIASES: Record<string, string[]> = {
     "henley",
     "top",
   ],
-  "Lifestyle & Bottoms": [
+  "Mens Lifestyle & Bottoms": [
     "cargo",
     "pants",
     "pant",
@@ -216,6 +233,15 @@ const CATEGORY_TITLE_TAG_ALIASES: Record<string, string[]> = {
     "shorts",
     "bottom",
     "chino",
+  ],
+  "Mens Athleisure": [
+    "athleisure",
+    "sport",
+    "sports",
+    "gym",
+    "running",
+    "track",
+    "activewear",
   ],
 };
 
@@ -276,7 +302,7 @@ const CATEGORY_CONFLICT_ALIASES: Record<string, string[]> = {
     "jacket",
     "dress",
   ],
-  "Sweatshirts & Hoodies": [
+  "Sweatshirt & Hoods": [
     "tank",
     "tee",
     "t shirt",
@@ -299,7 +325,7 @@ const CATEGORY_CONFLICT_ALIASES: Record<string, string[]> = {
     "hoodie",
     "sweatshirt",
   ],
-  "Cord Set": [
+  "Co-rd Set": [
     "tank",
     "tee",
     "t shirt",
@@ -309,8 +335,8 @@ const CATEGORY_CONFLICT_ALIASES: Record<string, string[]> = {
     "hoodie",
     "jacket",
   ],
-  Athleisure: ["dress", "blazer", "kurta"],
-  "Tshirt & Shirts": [
+  "Womens Athleisure": ["dress", "blazer", "kurta"],
+  "Mens T-Shirt & Upper": [
     "pant",
     "pants",
     "trouser",
@@ -325,7 +351,7 @@ const CATEGORY_CONFLICT_ALIASES: Record<string, string[]> = {
     "dress",
     "skirt",
   ],
-  "Lifestyle & Bottoms": [
+  "Mens Lifestyle & Bottoms": [
     "tee",
     "t shirt",
     "tshirt",
@@ -339,7 +365,347 @@ const CATEGORY_CONFLICT_ALIASES: Record<string, string[]> = {
     "dress",
     "skirt",
   ],
+  "Mens Athleisure": ["dress", "blazer", "kurta"],
 };
+
+/* ------------------------------------------------------------------ */
+/*  Phase 1: Imputation engine                                         */
+/* ------------------------------------------------------------------ */
+
+type BodyMeasurements = {
+  bust: number | null;
+  waist: number | null;
+  hip: number | null;
+  shoulder: number | null;
+  length: number | null;
+  inseam: number | null;
+};
+
+/** Level 1 — Size Dictionary (bust/chest, waist, hip in inches) */
+const SIZE_DICT: Record<string, Record<string, { bust: number; waist: number; hip: number }>> = {
+  Men: {
+    s:  { bust: 36, waist: 30, hip: 37 },
+    m:  { bust: 39, waist: 33, hip: 40 },
+    l:  { bust: 42, waist: 36, hip: 43 },
+    xl: { bust: 45, waist: 40, hip: 46 },
+  },
+  Women: {
+    s:  { bust: 34, waist: 27, hip: 37 },
+    m:  { bust: 36, waist: 29, hip: 39 },
+    l:  { bust: 39, waist: 32, hip: 42 },
+    xl: { bust: 42, waist: 35, hip: 45 },
+  },
+};
+
+function imputeBodyMeasurements(
+  sizeProfile: UserSizeProfile,
+  gender: "Women" | "Men",
+): BodyMeasurements {
+  let bust = numericValue(sizeProfile.bust);
+  let waist = numericValue(sizeProfile.waist);
+  let hip = numericValue(sizeProfile.hip);
+  let shoulder: number | null = null;
+  let inseam: number | null = null;
+  let length: number | null = numericValue(sizeProfile.length);
+
+  const heightCm = numericValue(sizeProfile.heightCm);
+  const weightKg = numericValue(sizeProfile.weightKg);
+  const heightInches = heightCm != null ? heightCm / 2.54 : null;
+  const preferredSize = (sizeProfile.preferredSize ?? "").trim().toLowerCase();
+
+  // ── Level 1: Size dictionary fill ──
+  if (preferredSize && SIZE_DICT[gender]?.[preferredSize]) {
+    const dict = SIZE_DICT[gender][preferredSize];
+    if (bust == null) bust = dict.bust;
+    if (waist == null) waist = dict.waist;
+    if (hip == null) hip = dict.hip;
+  }
+
+  // ── Level 2: Height/Weight baseline formulas ──
+  if (gender === "Men") {
+    if (bust == null && weightKg != null) bust = weightKg * 0.40 + 26;
+    if (waist == null && weightKg != null) waist = weightKg * 0.35 + 22;
+    if (inseam == null && heightInches != null) inseam = heightInches * 0.43;
+    if (shoulder == null && bust != null) shoulder = bust * 0.45;
+    if (hip == null && waist != null) hip = waist + 4;
+  } else {
+    // Women
+    if (bust == null && weightKg != null) bust = weightKg * 0.38 + 24;
+    if (waist == null && weightKg != null) waist = weightKg * 0.32 + 20;
+    if (inseam == null && heightInches != null) inseam = heightInches * 0.45;
+    if (shoulder == null && bust != null) shoulder = bust * 0.42;
+    if (hip == null && waist != null) hip = waist + 10;
+  }
+
+  // ── Level 3: Cross-calculation from available measurements ──
+  if (gender === "Men") {
+    if (bust != null && waist == null) waist = bust - 6;
+    if (bust != null && hip == null) hip = bust - 2;
+    if (waist != null && bust == null) bust = waist + 6;
+    if (waist != null && hip == null) hip = waist + 4;
+  } else {
+    if (bust != null && waist == null) waist = bust - 7;
+    if (bust != null && hip == null) hip = bust + 3;
+    if (waist != null && bust == null) bust = waist + 7;
+    if (waist != null && hip == null) hip = waist + 10;
+  }
+
+  // Shoulder fallback if still null
+  if (shoulder == null && bust != null) {
+    shoulder = gender === "Men" ? bust * 0.45 : bust * 0.42;
+  }
+
+  return { bust, waist, hip, shoulder, length, inseam };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Phase 2: Category → metafield routing                              */
+/* ------------------------------------------------------------------ */
+
+type FitField = "bust" | "waist" | "hip" | "shoulder" | "length" | "inseam";
+
+const CATEGORY_FIT_FIELDS: Record<string, FitField[]> = {
+  "Tops & Dresses":          ["bust", "waist", "length"],
+  "Cargo & Pants":           ["waist", "hip", "inseam", "length"],
+  "Tees":                    ["bust", "shoulder", "length"],
+  "Shorts & Skirts":         ["waist", "hip", "length"],
+  "Sweatshirt & Hoods":      ["bust", "shoulder", "length"],
+  "Jackets":                 ["bust", "shoulder", "length"],
+  "Co-rd Set":               ["bust", "waist", "hip", "length"],
+  "Womens Athleisure":       ["bust", "waist", "hip"],
+  "Mens T-Shirt & Upper":    ["bust", "shoulder", "length"],
+  "Mens Lifestyle & Bottoms":["waist", "hip", "inseam", "length"],
+  "Mens Athleisure":         ["bust", "waist", "hip"],
+};
+
+function fitFieldsForCategory(category: string): FitField[] {
+  return CATEGORY_FIT_FIELDS[category] ?? ["bust", "waist", "length"];
+}
+
+/* ------------------------------------------------------------------ */
+/*  Phase 3: Vibe-based ease modifiers (inches)                        */
+/* ------------------------------------------------------------------ */
+
+type EaseRange = { min: number; max: number };
+
+const VIBE_EASE: Record<string, EaseRange> = {
+  Athleisure:           { min: 0.5, max: 2.5 },
+  Fusion:               { min: 0.5, max: 2.5 },
+  "Womens Athleisure":  { min: 0.5, max: 2.5 },
+  "Mens Athleisure":    { min: 0.5, max: 2.5 },
+  Minimal:              { min: 2.0, max: 4.5 },
+  "Daily Drip":         { min: 2.0, max: 4.5 },
+  Daily:                { min: 2.0, max: 4.5 },
+  Streetwear:           { min: 4.0, max: 8.0 },
+  Thrift:               { min: 4.0, max: 8.0 },
+};
+
+function easeRangeForVibe(vibe: string): EaseRange {
+  return VIBE_EASE[vibe] ?? { min: 2.0, max: 4.5 };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Phase 4: 0-100 fit scoring algorithm                               */
+/* ------------------------------------------------------------------ */
+
+/** Upper-wear fields (bust, shoulder, hip on upper garments) */
+const UPPER_FIELDS = new Set<FitField>(["bust", "shoulder"]);
+/** Bottom-specific field */
+const BOTTOM_WAIST_FIELDS = new Set<FitField>(["waist"]);
+
+function isBottomCategory(category: string): boolean {
+  return [
+    "Cargo & Pants",
+    "Shorts & Skirts",
+    "Mens Lifestyle & Bottoms",
+  ].includes(category);
+}
+
+type FitScoreResult = {
+  score: number;
+  verified: boolean;
+  label: string | null;
+  matchedSize: string | null;
+  matchedVariantNumericId: string | null;
+};
+
+function computeFitScoreForMeasurements(
+  garmentMeasurements: MerchantProduct["measurements"],
+  body: BodyMeasurements,
+  fields: FitField[],
+  vibe: string,
+  category: string,
+  heightCm: number | null,
+): { score: number; comparedCount: number } | null {
+  const ease = easeRangeForVibe(vibe);
+  const isBottom = isBottomCategory(category);
+  let score = 100;
+  let comparedCount = 0;
+
+  for (const field of fields) {
+    const garmentVal = numericValue(garmentMeasurements?.[field]);
+    const bodyVal = body[field];
+
+    if (garmentVal == null || bodyVal == null) continue;
+
+    const easeActual = garmentVal - bodyVal;
+    comparedCount++;
+
+    // ── Rule 1: Hard failure — garment smaller than body ──
+    if (
+      (field === "bust" || field === "waist" || field === "hip") &&
+      garmentVal < bodyVal
+    ) {
+      return { score: 0, comparedCount };
+    }
+
+    // ── Rule 3: Bottoms waist scoring ──
+    if (isBottom && BOTTOM_WAIST_FIELDS.has(field)) {
+      const bottomMin = 0.5;
+      const bottomMax = 2.0;
+      if (easeActual < bottomMin) {
+        score -= (bottomMin - easeActual) * 25;
+      } else if (easeActual > bottomMax) {
+        score -= (easeActual - bottomMax) * 25;
+      }
+      continue;
+    }
+
+    // ── Rule 2: Upper-wear / general ease scoring ──
+    if (easeActual < ease.min) {
+      // Too tight
+      score -= (ease.min - easeActual) * 20;
+    } else if (easeActual > ease.max) {
+      // Too baggy
+      score -= (easeActual - ease.max) * 10;
+    }
+    // If within [ease.min, ease.max]: no penalty
+  }
+
+  // ── Rule 4: Height/length sanity check ──
+  if (heightCm != null) {
+    const garmentLength = numericValue(garmentMeasurements?.length);
+    if (garmentLength != null) {
+      if (heightCm > 180 && garmentLength < 26) {
+        score -= 20; // tall person + short garment
+      }
+      if (heightCm < 160 && garmentLength > 32) {
+        score -= 15; // short person + long garment
+      }
+    }
+  }
+
+  if (comparedCount === 0) return null;
+
+  return { score: Math.max(0, Math.min(100, Math.round(score))), comparedCount };
+}
+
+function sizeLabel(optionValues: string[], title: string | null | undefined) {
+  const recognized = optionValues.find((value) =>
+    /^(xxs|xs|s|m|l|xl|xxl|xxxl|\d{1,3})$/i.test(value.trim()),
+  );
+  return recognized || title || optionValues.join(" / ") || null;
+}
+
+function computeFitScore(
+  product: MerchantProduct,
+  sizeProfile: UserSizeProfile | null | undefined,
+  category: string,
+  vibe: string,
+  gender: "Women" | "Men",
+): FitScoreResult {
+  const noFit: FitScoreResult = {
+    score: 0,
+    verified: false,
+    label: null,
+    matchedSize: null,
+    matchedVariantNumericId: null,
+  };
+
+  if (!sizeProfile) return noFit;
+
+  const body = imputeBodyMeasurements(sizeProfile, gender);
+  const fields = fitFieldsForCategory(category);
+  const heightCm = numericValue(sizeProfile.heightCm);
+  const preferredSize = (sizeProfile.preferredSize ?? "").trim().toLowerCase();
+
+  // Try variant-level matching first
+  const variantCandidates = (product.variantMeasurements || [])
+    .filter((variant) => variant.availableForSale !== false)
+    .map((variant) => {
+      const result = computeFitScoreForMeasurements(
+        variant.measurements,
+        body,
+        fields,
+        vibe,
+        category,
+        heightCm,
+      );
+      if (!result) return null;
+
+      const label = sizeLabel(variant.optionValues || [], variant.title);
+      const preferredBonus =
+        preferredSize && (label ?? "").trim().toLowerCase() === preferredSize
+          ? 5
+          : 0;
+
+      return {
+        score: Math.min(100, result.score + preferredBonus),
+        comparedCount: result.comparedCount,
+        matchedSize: label,
+        matchedVariantNumericId: variant.variantNumericId || null,
+      };
+    })
+    .filter(
+      (c): c is NonNullable<typeof c> => c !== null,
+    )
+    .sort((a, b) => b.score - a.score || b.comparedCount - a.comparedCount);
+
+  const bestVariant = variantCandidates[0];
+  if (bestVariant) {
+    const verified = bestVariant.score >= 70;
+    return {
+      score: bestVariant.score,
+      verified,
+      label: verified
+        ? `Verified size match${bestVariant.matchedSize ? ` (${bestVariant.matchedSize})` : ""}`
+        : bestVariant.score >= 40
+          ? bestVariant.matchedSize
+            ? `Closest size: ${bestVariant.matchedSize}`
+            : "Close size match"
+          : bestVariant.matchedSize
+            ? `Size ${bestVariant.matchedSize} available`
+            : null,
+      matchedSize: bestVariant.matchedSize,
+      matchedVariantNumericId: bestVariant.matchedVariantNumericId,
+    };
+  }
+
+  // Fallback: product-level measurements
+  const fallback = computeFitScoreForMeasurements(
+    product.measurements,
+    body,
+    fields,
+    vibe,
+    category,
+    heightCm,
+  );
+
+  if (!fallback) return noFit;
+
+  const verified = fallback.score >= 70;
+  return {
+    score: fallback.score,
+    verified,
+    label: verified ? "Verified size match" : fallback.score >= 40 ? "Close size match" : null,
+    matchedSize: null,
+    matchedVariantNumericId: null,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Utility helpers (unchanged)                                        */
+/* ------------------------------------------------------------------ */
 
 const JUNK_PATTERNS = [
   "test",
@@ -416,16 +782,23 @@ function joinedText(product: MerchantProduct) {
 }
 
 function priceMatches(priceRange: PriceRange, price: number) {
-  if (priceRange === "\u20B90 - \u20B9999") {
+  if (priceRange === "₹0 - ₹999") {
     return price >= 0 && price <= 999;
   }
 
-  if (priceRange === "\u20B91,000 - \u20B92,499") {
+  if (priceRange === "₹1,000 - ₹2,499") {
     return price >= 1000 && price <= 2499;
   }
 
   return price >= 2500;
 }
+
+function numericValue(value: unknown) {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function isTempStagedUrl(url: string | null | undefined) {
   if (!url) return false;
   return (
@@ -616,155 +989,9 @@ function vibeHitsForProduct(product: MerchantProduct, vibe: string) {
   return countExactAliasMatches(text, tokens, aliases);
 }
 
-function numericValue(value: unknown) {
-  if (value == null || value === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-const SIZE_TOLERANCE_INCHES = 2;
-
-function measurementFieldsForCategory(category: string) {
-  if (["Cargo & Pants", "Shorts & Skirts", "Lifestyle & Bottoms"].includes(category)) {
-    return ["waist", "hip", "length"] as const;
-  }
-
-  if (category === "Cord Set" || category === "Athleisure") {
-    return ["bust", "waist", "hip", "length"] as const;
-  }
-
-  return ["bust", "waist", "length"] as const;
-}
-
-function sizeLabel(optionValues: string[], title: string | null | undefined) {
-  const recognized = optionValues.find((value) =>
-    /^(xxs|xs|s|m|l|xl|xxl|xxxl|\d{1,3})$/i.test(value.trim()),
-  );
-  return recognized || title || optionValues.join(" / ") || null;
-}
-
-function compareMeasurements(
-  measurements: MerchantProduct["measurements"],
-  sizeProfile: UserSizeProfile,
-  fields: readonly ("bust" | "waist" | "hip" | "length")[],
-) {
-  const comparisons = fields
-    .map((key) => {
-      const productValue = numericValue(measurements?.[key]);
-      const userValue = numericValue(sizeProfile[key]);
-      if (productValue == null || userValue == null) return null;
-      return { key, difference: Math.abs(productValue - userValue) };
-    })
-    .filter(
-      (comparison): comparison is { key: (typeof fields)[number]; difference: number } =>
-        comparison !== null,
-    );
-
-  if (comparisons.length < 2) return null;
-
-  const verified = comparisons.every(
-    ({ difference }) => difference <= SIZE_TOLERANCE_INCHES,
-  );
-  const averageDifference =
-    comparisons.reduce((total, item) => total + item.difference, 0) /
-    comparisons.length;
-  const closeness = Math.max(
-    0,
-    1 - averageDifference / SIZE_TOLERANCE_INCHES,
-  );
-
-  return {
-    verified,
-    comparisons: comparisons.length,
-    averageDifference,
-    closeness,
-  };
-}
-
-function computeSizeMatch(
-  product: MerchantProduct,
-  sizeProfile: UserSizeProfile | null | undefined,
-  category: string,
-) {
-  if (!sizeProfile) {
-    return {
-      score: 0,
-      verified: false,
-      label: null,
-      matchedSize: null,
-      matchedVariantNumericId: null,
-    };
-  }
-
-  const fields = measurementFieldsForCategory(category);
-  const preferredSize = normalizeText(sizeProfile.preferredSize);
-  const variantCandidates = (product.variantMeasurements || [])
-    .filter((variant) => variant.availableForSale !== false)
-    .map((variant) => {
-      const comparison = compareMeasurements(
-        variant.measurements,
-        sizeProfile,
-        fields,
-      );
-      if (!comparison) return null;
-      const label = sizeLabel(
-        variant.optionValues || [],
-        variant.title,
-      );
-      const preferredBonus =
-        preferredSize && normalizeText(label) === preferredSize ? 4 : 0;
-      return {
-        ...comparison,
-        score:
-          Math.round(comparison.closeness * 22) +
-          comparison.comparisons * 3 +
-          preferredBonus,
-        matchedSize: label,
-        matchedVariantNumericId: variant.variantNumericId || null,
-      };
-    })
-    .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null)
-    .sort(
-      (a, b) =>
-        Number(b.verified) - Number(a.verified) ||
-        b.score - a.score ||
-        a.averageDifference - b.averageDifference,
-    );
-
-  const bestVariant = variantCandidates[0];
-  if (bestVariant) {
-    return {
-      score: bestVariant.score,
-      verified: bestVariant.verified,
-      label: bestVariant.verified
-        ? `Verified size match${bestVariant.matchedSize ? ` (${bestVariant.matchedSize})` : ""}`
-        : bestVariant.matchedSize
-          ? `Closest size: ${bestVariant.matchedSize}`
-          : "Close size match",
-      matchedSize: bestVariant.matchedSize,
-      matchedVariantNumericId: bestVariant.matchedVariantNumericId,
-    };
-  }
-
-  const fallback = compareMeasurements(product.measurements, sizeProfile, fields);
-  if (!fallback) {
-    return {
-      score: 0,
-      verified: false,
-      label: null,
-      matchedSize: null,
-      matchedVariantNumericId: null,
-    };
-  }
-
-  return {
-    score: Math.round(fallback.closeness * 18) + fallback.comparisons * 2,
-    verified: fallback.verified,
-    label: fallback.verified ? "Verified size match" : "Close size match",
-    matchedSize: null,
-    matchedVariantNumericId: null,
-  };
-}
+/* ------------------------------------------------------------------ */
+/*  Public exports: getAvailableCategories, buildCandidatePool, score  */
+/* ------------------------------------------------------------------ */
 
 export function getAvailableCategories(args: {
   products: MerchantProduct[];
@@ -873,7 +1100,15 @@ export function scoreProducts(args: {
     const cat = categorySignals(product, args.category);
     const vibeHits = countExactAliasMatches(fullText, fullTokens, vibeAliases);
     const soldOut = isSoldOut(product);
-    const sizeMatch = computeSizeMatch(product, args.sizeProfile, args.category);
+
+    // New fit scoring engine
+    const fitResult = computeFitScore(
+      product,
+      args.sizeProfile,
+      args.category,
+      args.vibe,
+      args.gender,
+    );
 
     let score = 0;
     const reasons: string[] = [];
@@ -892,13 +1127,15 @@ export function scoreProducts(args: {
       score += 5;
     }
 
-    if (sizeMatch.score > 0) {
-      score += sizeMatch.score;
-      reasons.push(
-        sizeMatch.verified
-          ? "Verified against your size details."
-          : "Close to your size details.",
-      );
+    // Integrate fit score — scale the 0-100 fit score into the overall scoring
+    if (fitResult.score > 0) {
+      // Weight the fit score: max contribution of ~30 points to overall score
+      score += Math.round((fitResult.score / 100) * 30);
+      if (fitResult.verified) {
+        reasons.push("Verified against your size details.");
+      } else if (fitResult.score >= 40) {
+        reasons.push("Close to your size details.");
+      }
     }
 
     return {
@@ -917,11 +1154,11 @@ export function scoreProducts(args: {
       shopifyProductId: product.shopifyProductId ?? null,
       storeUrl: null,
       addToCartUrl: null,
-      fitVerified: sizeMatch.verified,
-      fitMatchLabel: sizeMatch.label,
-      sizeMatchScore: sizeMatch.score,
-      matchedSize: sizeMatch.matchedSize,
-      matchedVariantNumericId: sizeMatch.matchedVariantNumericId,
+      fitVerified: fitResult.verified,
+      fitMatchLabel: fitResult.label,
+      sizeMatchScore: fitResult.score,
+      matchedSize: fitResult.matchedSize,
+      matchedVariantNumericId: fitResult.matchedVariantNumericId,
     };
   });
 
@@ -935,4 +1172,3 @@ export function scoreProducts(args: {
 
   return [...inStock, ...soldOut].slice(0, maxResults);
 }
-

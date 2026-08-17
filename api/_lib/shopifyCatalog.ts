@@ -94,7 +94,9 @@ function normalizeMeasurements(input: any) {
     bust: toNumOrNull(input.bust ?? input.chest),
     waist: toNumOrNull(input.waist),
     hip: toNumOrNull(input.hip),
-    length: toNumOrNull(input.length ?? input.inseam),
+    shoulder: toNumOrNull(input.shoulder),
+    length: toNumOrNull(input.length),
+    inseam: toNumOrNull(input.inseam),
     unit: typeof input.unit === "string" ? input.unit : "in",
   };
 
@@ -102,7 +104,9 @@ function normalizeMeasurements(input: any) {
     bust: measurements.bust,
     waist: measurements.waist,
     hip: measurements.hip,
+    shoulder: measurements.shoulder,
     length: measurements.length,
+    inseam: measurements.inseam,
   }).some((value) => typeof value === "number")
     ? measurements
     : null;

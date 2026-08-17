@@ -70,7 +70,9 @@ const productMeasurementsSchema = z.object({
   bust: z.number().nullable().optional(),
   waist: z.number().nullable().optional(),
   hip: z.number().nullable().optional(),
+  shoulder: z.number().nullable().optional(),
   length: z.number().nullable().optional(),
+  inseam: z.number().nullable().optional(),
   unit: z.string().nullable().optional(),
 });
 

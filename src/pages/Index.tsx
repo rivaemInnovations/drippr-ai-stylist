@@ -5,7 +5,7 @@ import StepCard from "@/components/StyleConcierge/StepCard";
 import CuratingLoader from "@/components/StyleConcierge/CuratingLoader";
 import ResultsSection from "@/components/StyleConcierge/ResultsSection";
 import { prepareValidatedPhoto } from "@/lib/photoValidation";
-import { getAvailableCategoryOptions, recommendStyle } from "@/lib/api";
+import { recommendStyle } from "@/lib/api";
 import {
   addToAiBag,
   openAiBagInStore,
@@ -50,16 +50,16 @@ const WOMEN_CATEGORY_OPTIONS = [
   "Cargo & Pants",
   "Tees",
   "Shorts & Skirts",
-  "Sweatshirts & Hoodies",
+  "Sweatshirt & Hoods",
   "Jackets",
-  "Cord Set",
-  "Athleisure",
+  "Co-rd Set",
+  "Womens Athleisure",
 ];
 
 const MEN_CATEGORY_OPTIONS = [
-  "Tshirt & Shirts",
-  "Lifestyle & Bottoms",
-  "Athleisure",
+  "Mens T-Shirt & Upper",
+  "Mens Lifestyle & Bottoms",
+  "Mens Athleisure",
 ];
 
 function categoryOptionsForGender(gender: Gender | null): string[] {
@@ -146,7 +146,6 @@ const Index = () => {
   );
 
   const flowRef = useRef<HTMLDivElement>(null);
-  const categoryOptionsCache = useRef<Record<string, string[]>>({});
 
   const isCompact = activeStep >= 1 || showResults;
   const shouldLockViewport =
@@ -221,30 +220,6 @@ const Index = () => {
       }
 
       const nextStep = activeStep + 1;
-
-      if (key === "vibe" && nextAnswers.gender) {
-        const fallbackCategories = categoryOptionsForGender(nextAnswers.gender);
-        const cacheKey = `${nextAnswers.gender}__${value}`;
-        const cached = categoryOptionsCache.current[cacheKey];
-
-        if (cached && cached.length > 0) {
-          setCategoryOptions(cached);
-        } else {
-          void getAvailableCategoryOptions({
-            gender: nextAnswers.gender as Gender,
-            vibe: value,
-          })
-            .then((options) => {
-              const finalOptions =
-                options.length > 0 ? options : fallbackCategories;
-              categoryOptionsCache.current[cacheKey] = finalOptions;
-              setCategoryOptions(finalOptions);
-            })
-            .catch(() => {
-              setCategoryOptions(fallbackCategories);
-            });
-        }
-      }
 
       if (nextStep < STEPS.length) {
         const delay = key === "photo" ? 70 : 20;
