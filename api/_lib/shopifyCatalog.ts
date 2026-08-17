@@ -448,6 +448,128 @@ function normalizeShopifyProduct(node: any): CatalogProductEntry | null {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/*  Collection-based product fetching                                   */
+/* ------------------------------------------------------------------ */
+
+const COLLECTION_PRODUCTS_QUERY = `
+  query CollectionProducts($handle: String!, $cursor: String) {
+    collectionByHandle(handle: $handle) {
+      id
+      title
+      products(first: 100, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          id
+          title
+          description
+          handle
+          vendor
+          productType
+          tags
+          status
+          onlineStoreUrl
+          featuredImage {
+            url
+          }
+          images(first: 10) {
+            nodes {
+              url
+            }
+          }
+          garmentSizing: metafields(first: 10, namespace: "garment_sizing") {
+            nodes {
+              key
+              value
+              type
+            }
+          }
+          legacySizing: metafields(first: 10, namespace: "drippr_sizing") {
+            nodes {
+              key
+              value
+              type
+            }
+          }
+          variants(first: 50) {
+            nodes {
+              id
+              title
+              sku
+              availableForSale
+              price
+              selectedOptions {
+                name
+                value
+              }
+              garmentSizing: metafields(first: 10, namespace: "garment_sizing") {
+                nodes {
+                  key
+                  value
+                  type
+                }
+              }
+              legacySizing: metafields(first: 10, namespace: "drippr_sizing") {
+                nodes {
+                  key
+                  value
+                  type
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export async function fetchProductsByCollectionHandle(
+  handle: string,
+): Promise<CatalogProductEntry[]> {
+  const results: CatalogProductEntry[] = [];
+  let cursor: string | null = null;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const data = await shopifyGraphQL(COLLECTION_PRODUCTS_QUERY, {
+      handle,
+      cursor,
+    });
+
+    const collection = data?.data?.collectionByHandle;
+    if (!collection) {
+      console.warn(`[shopifyCatalog] Collection not found for handle: "${handle}"`);
+      return [];
+    }
+
+    const connection = collection.products;
+    const nodes = Array.isArray(connection?.nodes) ? connection.nodes : [];
+
+    for (const node of nodes) {
+      const normalized = normalizeShopifyProduct(node);
+      if (normalized) {
+        results.push(normalized);
+      }
+    }
+
+    hasNextPage = Boolean(connection?.pageInfo?.hasNextPage);
+    cursor =
+      typeof connection?.pageInfo?.endCursor === "string"
+        ? connection.pageInfo.endCursor
+        : null;
+  }
+
+  return enrichWithMerchantProductData(results);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Full catalog fetch (legacy — kept for category-options endpoint)    */
+/* ------------------------------------------------------------------ */
+
 export async function fetchShopifyCatalogProducts(): Promise<
   CatalogProductEntry[]
 > {

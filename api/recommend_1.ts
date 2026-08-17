@@ -1,7 +1,12 @@
-import { buildCandidatePool, scoreProducts } from "./_lib/recommendation.js";
+import {
+  scoreProducts,
+  VIBE_COLLECTION_HANDLES,
+  CATEGORY_COLLECTION_HANDLES,
+  filterCollectionIntersection,
+} from "./_lib/recommendation.js";
 import {
   addToCartUrlForVariant,
-  fetchShopifyCatalogProducts,
+  fetchProductsByCollectionHandle,
 } from "./_lib/shopifyCatalog.js";
 import {
   recommendRequestSchema,
@@ -39,16 +44,38 @@ export default async function handler(req: any, res: any) {
   try {
     const body = recommendRequestSchema.parse(getBody(req));
 
-    const catalogEntries = await fetchShopifyCatalogProducts();
-    const products = catalogEntries.map((entry) => entry.product);
+    /* ── Resolve collection handles ── */
+    const vibeHandle = VIBE_COLLECTION_HANDLES[body.vibe];
+    const categoryHandle = CATEGORY_COLLECTION_HANDLES[body.category];
 
-    const pool = buildCandidatePool({
-      products,
-      gender: body.gender,
-      category: body.category,
+    if (!vibeHandle) {
+      return res.status(400).json({
+        error: `Unknown vibe: "${body.vibe}". Valid options: ${Object.keys(VIBE_COLLECTION_HANDLES).join(", ")}`,
+      });
+    }
+    if (!categoryHandle) {
+      return res.status(400).json({
+        error: `Unknown category: "${body.category}". Valid options: ${Object.keys(CATEGORY_COLLECTION_HANDLES).join(", ")}`,
+      });
+    }
+
+    /* ── Fetch both collections in parallel ── */
+    const [vibeEntries, categoryEntries] = await Promise.all([
+      fetchProductsByCollectionHandle(vibeHandle),
+      fetchProductsByCollectionHandle(categoryHandle),
+    ]);
+
+    /* ── Intersect + filter ── */
+    const vibeProducts = vibeEntries.map((e) => e.product);
+    const categoryProducts = categoryEntries.map((e) => e.product);
+
+    const pool = filterCollectionIntersection({
+      vibeProducts,
+      categoryProducts,
       priceRange: body.priceRange,
     });
 
+    /* ── Score & rank ── */
     const rankedProducts = scoreProducts({
       products: pool.products,
       gender: body.gender,
@@ -81,8 +108,10 @@ export default async function handler(req: any, res: any) {
       maxResults: 100,
     });
 
+    /* ── Build response with store/cart URLs ── */
+    const allEntries = [...vibeEntries, ...categoryEntries];
     const byId = new Map(
-      catalogEntries.map((entry) => [entry.product.id, entry] as const),
+      allEntries.map((entry) => [entry.product.id, entry] as const),
     );
 
     const finalProducts = rankedProducts.map((product) => {
@@ -119,16 +148,17 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({
       ...response,
       debugApplied: {
-        engineVersion: "shopify-variant-fit-v15",
+        engineVersion: "collection-intersection-v1",
         category: body.category,
+        categoryHandle,
         vibe: body.vibe,
+        vibeHandle,
         priceRange: body.priceRange,
-        totalCatalogCount: products.length,
-        poolStage: pool.stage,
-        baseEligibleCount: pool.counts.baseEligible,
-        strictProductTypeCount: pool.counts.strictProductType,
-        titleTagMatchCount: pool.counts.titleTagMatch,
-        curatedPoolCount: pool.products.length,
+        vibeCollectionCount: pool.counts.vibeCollectionCount,
+        categoryCollectionCount: pool.counts.categoryCollectionCount,
+        intersectionCount: pool.counts.intersectionCount,
+        afterPriceFilter: pool.counts.afterPriceFilter,
+        finalPoolCount: pool.counts.finalCount,
       },
     });
   } catch (error) {
