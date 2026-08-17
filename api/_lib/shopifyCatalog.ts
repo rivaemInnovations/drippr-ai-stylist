@@ -449,77 +449,95 @@ function normalizeShopifyProduct(node: any): CatalogProductEntry | null {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Collection-based product fetching (by title search)                 */
+/*  Collection-based product fetching (2-step: find ID, then products)  */
 /* ------------------------------------------------------------------ */
 
-const COLLECTION_PRODUCTS_QUERY = `
-  query CollectionProducts($searchQuery: String!) {
+/**
+ * Step 1 — lightweight query: find a collection by title.
+ * No nested product data, so query cost is minimal.
+ */
+const FIND_COLLECTION_QUERY = `
+  query FindCollection($searchQuery: String!) {
     collections(first: 5, query: $searchQuery) {
       nodes {
         id
         title
         handle
-        products(first: 250) {
-          pageInfo {
-            hasNextPage
-            endCursor
+      }
+    }
+  }
+`;
+
+/**
+ * Step 2 — fetch products from a known collection by its GID.
+ * Uses `collection(id:)` at the root level (NOT nested inside
+ * `collections`) and mirrors the existing SHOPIFY_PRODUCTS_QUERY
+ * field selection, so query cost is comparable to what already works.
+ */
+const COLLECTION_PRODUCTS_QUERY = `
+  query CollectionProducts($collectionId: ID!, $cursor: String) {
+    collection(id: $collectionId) {
+      title
+      products(first: 25, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          id
+          title
+          description
+          handle
+          vendor
+          productType
+          tags
+          status
+          onlineStoreUrl
+          featuredImage {
+            url
           }
-          nodes {
-            id
-            title
-            description
-            handle
-            vendor
-            productType
-            tags
-            status
-            onlineStoreUrl
-            featuredImage {
+          images(first: 10) {
+            nodes {
               url
             }
-            images(first: 10) {
-              nodes {
-                url
-              }
+          }
+          garmentSizing: metafields(first: 10, namespace: "garment_sizing") {
+            nodes {
+              key
+              value
+              type
             }
-            garmentSizing: metafields(first: 10, namespace: "garment_sizing") {
-              nodes {
-                key
+          }
+          legacySizing: metafields(first: 10, namespace: "drippr_sizing") {
+            nodes {
+              key
+              value
+              type
+            }
+          }
+          variants(first: 50) {
+            nodes {
+              id
+              title
+              sku
+              availableForSale
+              price
+              selectedOptions {
+                name
                 value
-                type
               }
-            }
-            legacySizing: metafields(first: 10, namespace: "drippr_sizing") {
-              nodes {
-                key
-                value
-                type
-              }
-            }
-            variants(first: 50) {
-              nodes {
-                id
-                title
-                sku
-                availableForSale
-                price
-                selectedOptions {
-                  name
+              garmentSizing: metafields(first: 10, namespace: "garment_sizing") {
+                nodes {
+                  key
                   value
+                  type
                 }
-                garmentSizing: metafields(first: 10, namespace: "garment_sizing") {
-                  nodes {
-                    key
-                    value
-                    type
-                  }
-                }
-                legacySizing: metafields(first: 10, namespace: "drippr_sizing") {
-                  nodes {
-                    key
-                    value
-                    type
-                  }
+              }
+              legacySizing: metafields(first: 10, namespace: "drippr_sizing") {
+                nodes {
+                  key
+                  value
+                  type
                 }
               }
             }
@@ -531,53 +549,72 @@ const COLLECTION_PRODUCTS_QUERY = `
 `;
 
 /**
- * Fetches products from a Shopify collection by searching for the
- * collection title.  Uses `collections(query: "title:…")` which is
- * guaranteed to work in every Admin API version, then picks the
- * exact-title match from the results.
+ * Fetches products from a Shopify collection by title.
+ *
+ * Two-step approach:
+ *   1. Tiny query to find the collection GID by title
+ *   2. Paginated product fetch using collection(id:) — same field
+ *      selection & page size as the existing working products query
  */
 export async function fetchProductsByCollectionTitle(
   collectionTitle: string,
 ): Promise<CatalogProductEntry[]> {
-  const data = await shopifyGraphQL(COLLECTION_PRODUCTS_QUERY, {
-    searchQuery: `title:${collectionTitle}`,
+  /* ── Step 1: find the collection ── */
+  const findData = await shopifyGraphQL(FIND_COLLECTION_QUERY, {
+    searchQuery: collectionTitle,
   });
 
-  const allNodes = data?.data?.collections?.nodes;
-  if (!Array.isArray(allNodes) || allNodes.length === 0) {
+  const candidates = findData?.data?.collections?.nodes;
+  if (!Array.isArray(candidates) || candidates.length === 0) {
     console.warn(
-      `[shopifyCatalog] No collections found when searching for title: "${collectionTitle}"`,
+      `[shopifyCatalog] No collection found for: "${collectionTitle}"`,
     );
     return [];
   }
 
-  // Pick the exact title match (case-insensitive); fall back to first result
-  const exactMatch = allNodes.find(
-    (n: any) =>
-      typeof n?.title === "string" &&
-      n.title.trim().toUpperCase() === collectionTitle.trim().toUpperCase(),
-  );
-  const collection = exactMatch ?? allNodes[0];
+  // Exact title match (case-insensitive), fall back to first result
+  const match =
+    candidates.find(
+      (c: any) =>
+        typeof c?.title === "string" &&
+        c.title.trim().toUpperCase() === collectionTitle.trim().toUpperCase(),
+    ) ?? candidates[0];
 
   console.log(
-    `[shopifyCatalog] Matched collection: "${collection.title}" ` +
-      `(handle: ${collection.handle}, id: ${collection.id})`,
+    `[shopifyCatalog] Resolved collection: "${match.title}" ` +
+      `(handle: ${match.handle}, id: ${match.id})`,
   );
 
-  const productNodes = Array.isArray(collection.products?.nodes)
-    ? collection.products.nodes
-    : [];
-
+  /* ── Step 2: paginated product fetch ── */
   const results: CatalogProductEntry[] = [];
-  for (const node of productNodes) {
-    const normalized = normalizeShopifyProduct(node);
-    if (normalized) {
-      results.push(normalized);
+  let cursor: string | null = null;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const data = await shopifyGraphQL(COLLECTION_PRODUCTS_QUERY, {
+      collectionId: match.id,
+      cursor,
+    });
+
+    const connection = data?.data?.collection?.products;
+    const nodes = Array.isArray(connection?.nodes) ? connection.nodes : [];
+
+    for (const node of nodes) {
+      const normalized = normalizeShopifyProduct(node);
+      if (normalized) {
+        results.push(normalized);
+      }
     }
+
+    hasNextPage = Boolean(connection?.pageInfo?.hasNextPage);
+    cursor =
+      typeof connection?.pageInfo?.endCursor === "string"
+        ? connection.pageInfo.endCursor
+        : null;
   }
 
   console.log(
-    `[shopifyCatalog] Collection "${collection.title}" → ${productNodes.length} raw, ${results.length} normalized`,
+    `[shopifyCatalog] Collection "${match.title}" → ${results.length} products`,
   );
 
   return enrichWithMerchantProductData(results);
