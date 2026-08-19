@@ -587,16 +587,22 @@ function fitFieldsForCategory(category: string): FitField[] {
 
 type EaseRange = { min: number; max: number };
 
+/*
+ * Ease ranges (inches) — how much larger the garment should be than the body.
+ * These are ADDITIONAL ease on top of what the garment already provides.
+ * Indian brands' size charts already include some ease in the measurement,
+ * so these values are kept modest.
+ */
 const VIBE_EASE: Record<string, EaseRange> = {
-  Athleisure:           { min: 0.5, max: 2.5 },
-  Fusion:               { min: 0.5, max: 2.5 },
-  "Womens Athleisure":  { min: 0.5, max: 2.5 },
-  "Mens Athleisure":    { min: 0.5, max: 2.5 },
-  Minimal:              { min: 2.0, max: 4.5 },
-  "Daily Drip":         { min: 2.0, max: 4.5 },
-  Daily:                { min: 2.0, max: 4.5 },
-  Streetwear:           { min: 4.0, max: 8.0 },
-  Thrift:               { min: 4.0, max: 8.0 },
+  Athleisure:           { min: 0, max: 2 },
+  Fusion:               { min: 0, max: 2 },
+  "Womens Athleisure":  { min: 0, max: 2 },
+  "Mens Athleisure":    { min: 0, max: 2 },
+  Minimal:              { min: 0, max: 3 },
+  "Daily Drip":         { min: 0, max: 3 },
+  Daily:                { min: 0, max: 3 },
+  Streetwear:           { min: 0, max: 4 },
+  Thrift:               { min: 0, max: 4 },
 };
 
 function easeRangeForVibe(vibe: string): EaseRange {
@@ -641,6 +647,12 @@ function computeFitScoreForMeasurements(
   let score = 100;
   let comparedCount = 0;
 
+  /*
+   * Body-to-garment scoring: user input = body measurement.
+   * The garment should be >= body and ideally within the vibe's ease range.
+   * Penalties are softer than before so that an exact match (ease = 0)
+   * still scores well — the size-chart numbers already include some ease.
+   */
   for (const field of fields) {
     const garmentVal = numericValue(garmentMeasurements?.[field]);
     const bodyVal = body[field];
@@ -650,7 +662,7 @@ function computeFitScoreForMeasurements(
     const easeActual = garmentVal - bodyVal;
     comparedCount++;
 
-    // ── Rule 1: Hard failure — garment smaller than body ──
+    // ── Hard failure — garment smaller than body ──
     if (
       (field === "bust" || field === "waist" || field === "hip") &&
       garmentVal < bodyVal
@@ -658,30 +670,30 @@ function computeFitScoreForMeasurements(
       return { score: 0, comparedCount };
     }
 
-    // ── Rule 3: Bottoms waist scoring ──
+    // ── Bottoms waist scoring ──
     if (isBottom && BOTTOM_WAIST_FIELDS.has(field)) {
-      const bottomMin = 0.5;
+      const bottomMin = 0;
       const bottomMax = 2.0;
       if (easeActual < bottomMin) {
         score -= (bottomMin - easeActual) * 25;
       } else if (easeActual > bottomMax) {
-        score -= (easeActual - bottomMax) * 25;
+        score -= (easeActual - bottomMax) * 15;
       }
       continue;
     }
 
-    // ── Rule 2: Upper-wear / general ease scoring ──
+    // ── General ease scoring (softer curve) ──
     if (easeActual < ease.min) {
-      // Too tight
-      score -= (ease.min - easeActual) * 20;
+      // Below ease range — mild penalty (garment still fits, just snug)
+      score -= (ease.min - easeActual) * 10;
     } else if (easeActual > ease.max) {
-      // Too baggy
+      // Above ease range — garment too baggy
       score -= (easeActual - ease.max) * 10;
     }
     // If within [ease.min, ease.max]: no penalty
   }
 
-  // ── Rule 4: Height/length sanity check ──
+  // ── Height/length sanity check ──
   if (heightCm != null) {
     const garmentLength = numericValue(garmentMeasurements?.length);
     if (garmentLength != null) {
@@ -743,22 +755,34 @@ function computeFitScore(
       if (!result) return null;
 
       const label = sizeLabel(variant.optionValues || [], variant.title);
-      const preferredBonus =
-        preferredSize && (label ?? "").trim().toLowerCase() === preferredSize
-          ? 5
-          : 0;
+      const isPreferredMatch =
+        !!preferredSize && (label ?? "").trim().toLowerCase() === preferredSize;
+
+      /*
+       * Preferred-size = garment size the user buys (S/M/L/XL).
+       * It's the strongest signal — a 40-point bonus ensures it
+       * almost always wins, and sort priority breaks any ties.
+       */
+      const preferredBonus = isPreferredMatch ? 40 : 0;
 
       return {
         score: Math.min(100, result.score + preferredBonus),
         comparedCount: result.comparedCount,
         matchedSize: label,
         matchedVariantNumericId: variant.variantNumericId || null,
+        isPreferredMatch,
       };
     })
     .filter(
       (c): c is NonNullable<typeof c> => c !== null,
     )
-    .sort((a, b) => b.score - a.score || b.comparedCount - a.comparedCount);
+    .sort((a, b) => {
+      // Preferred size match always wins
+      if (a.isPreferredMatch !== b.isPreferredMatch) {
+        return a.isPreferredMatch ? -1 : 1;
+      }
+      return b.score - a.score || b.comparedCount - a.comparedCount;
+    });
 
   const bestVariant = variantCandidates[0];
   if (bestVariant) {
