@@ -26,9 +26,14 @@ const TopBar = ({
       <div className="h-14 flex items-center justify-between px-5 md:px-8 border-b border-border bg-background/80 backdrop-blur-xl">
         <a
           href="https://drippr.in/"
-          className="font-display text-lg font-bold tracking-[0.2em] text-foreground transition-opacity hover:opacity-80"
+          className="transition-opacity hover:opacity-80 flex items-center"
         >
-          DRIPPR
+          <img
+            src="/dripstr-logo.png"
+            alt="DRIPSTR"
+            className="h-5 md:h-6"
+            style={{ filter: "invert(1)" }}
+          />
         </a>
 
         {showProgress && (
