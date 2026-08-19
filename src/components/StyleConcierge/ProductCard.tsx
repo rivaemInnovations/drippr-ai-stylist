@@ -63,7 +63,7 @@ const ProductCard = ({ product, index, onAddToBag }: ProductCardProps) => {
           >
             {product.title}
           </h4>
-          <p className="font-bold text-base mt-2" style={{ color: "#ff5a1f" }}>
+          <p className="font-extrabold text-lg mt-2 tracking-tight" style={{ color: "#1a1a1a" }}>
             {product.currency} {product.price}
           </p>
         </div>
