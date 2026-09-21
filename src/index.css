@@ -4,6 +4,16 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
+/* Brand wordmark face (Liham by Zianne Agustin) — self-hosted from /public/fonts */
+@font-face {
+  font-family: 'Liham';
+  src: url('/fonts/Liham.woff2') format('woff2'),
+       url('/fonts/Liham.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 0 0% 4%;

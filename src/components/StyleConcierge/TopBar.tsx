@@ -26,14 +26,15 @@ const TopBar = ({
       <div className="h-14 flex items-center justify-between px-5 md:px-8 border-b border-border bg-background/80 backdrop-blur-xl">
         <a
           href="https://drippr.in/"
-          className="transition-opacity hover:opacity-80 flex items-center"
+          aria-label="DRIPSTR — go to drippr.in"
+          className="flex items-center transition-opacity hover:opacity-80"
         >
-          <img
-            src="/dripstr-logo.png"
-            alt="DRIPSTR"
-            className="h-5 md:h-6"
-            style={{ filter: "invert(1)" }}
-          />
+          <span
+            className="font-logo text-white text-xl md:text-2xl leading-none tracking-[0.08em] select-none"
+            style={{ textShadow: "0 0 24px hsla(0, 0%, 100%, 0.18)" }}
+          >
+            DRIPSTR
+          </span>
         </a>
 
         {showProgress && (
@@ -51,12 +52,6 @@ const TopBar = ({
               />
             </div>
           </div>
-        )}
-
-        {!showProgress && (
-          <span className="hidden sm:block text-[11px] tracking-[0.3em] text-muted-foreground font-medium uppercase">
-            Style Concierge
-          </span>
         )}
 
         <div className="flex items-center gap-3">
