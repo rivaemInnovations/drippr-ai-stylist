@@ -23,14 +23,14 @@ const TopBar = ({
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
-      <div className="h-14 flex items-center justify-between px-5 md:px-8 border-b border-border bg-background/80 backdrop-blur-xl">
+      <div className="h-14 flex items-center justify-between gap-3 px-4 md:px-8 border-b border-border bg-background/80 backdrop-blur-xl">
         <a
           href="https://drippr.in/"
           aria-label="DRIPSTR — go to drippr.in"
-          className="flex items-center transition-opacity hover:opacity-80"
+          className="flex shrink-0 items-center transition-opacity hover:opacity-80"
         >
           <span
-            className="font-logo text-white text-xl md:text-2xl leading-none tracking-[0.08em] select-none"
+            className="font-logo text-white text-lg md:text-2xl leading-none tracking-[0.06em] md:tracking-[0.08em] whitespace-nowrap select-none"
             style={{ textShadow: "0 0 24px hsla(0, 0%, 100%, 0.18)" }}
           >
             DRIPSTR
@@ -38,11 +38,11 @@ const TopBar = ({
         </a>
 
         {showProgress && (
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <span className="text-[10px] tracking-[0.15em] text-muted-foreground font-medium tabular-nums">
               {currentStep}/{totalSteps}
             </span>
-            <div className="w-16 md:w-24 h-1 rounded-full bg-secondary overflow-hidden">
+            <div className="w-12 md:w-24 h-1 rounded-full bg-secondary overflow-hidden">
               <div
                 className="h-full rounded-full bg-primary"
                 style={{
@@ -54,7 +54,7 @@ const TopBar = ({
           </div>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 md:gap-3">
           <button
             onClick={onOpenBag}
             className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 active:scale-95"
