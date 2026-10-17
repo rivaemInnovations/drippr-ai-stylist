@@ -19,27 +19,35 @@ const Hero = ({ compact }: { compact?: boolean }) => {
         className={`smooth-layer relative z-10 flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${compact ? "-translate-y-4 scale-[0.55] md:-translate-y-6 md:scale-[0.6]" : "translate-y-0 scale-100"}`}
       >
         <h1
-          className={`smooth-layer font-display font-bold tracking-tight text-foreground text-4xl md:text-6xl lg:text-7xl transition-[transform,opacity] duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
-          style={{ lineHeight: "1.1", transitionDelay: "0.1s" }}
+          className="smooth-layer font-display font-bold tracking-tight text-foreground text-5xl md:text-6xl lg:text-7xl"
+          style={{ lineHeight: "1.1" }}
         >
-          Hey ! I am{" "}
+          {/* Entrance transition sits on the wrapper; the glow animation sits on the
+              inner span, because a CSS animation would otherwise override the
+              transition's opacity/transform during the fade-in. */}
           <span
-            className="text-gradient-orange inline-block animate-dripstr-glow"
-            style={{ animationDelay: "0.5s" }}
+            className={`block smooth-layer transition-[transform,opacity] duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+            style={{ transitionDelay: "0.1s" }}
           >
-            DRIPSTR
+            <span
+              className="text-gradient-orange inline-block animate-dripstr-glow"
+              style={{ animationDelay: "0.5s" }}
+            >
+              Hey!
+            </span>
           </span>
-          ,
-          <br />
-          <span className="text-muted-foreground font-medium" style={{ fontSize: "0.6em" }}>Your fashion stylist</span>
-        </h1>
 
-        <p
-          className={`smooth-layer text-base text-muted-foreground md:text-lg mt-4 md:mt-6 transition-[transform,opacity] duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-          style={{ transitionDelay: "0.3s" }}
-        >
-          Curated outfit ideas, fast.
-        </p>
+          <span
+            className={`block smooth-layer text-muted-foreground font-medium mt-3 md:mt-4 transition-[transform,opacity] duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+            style={{
+              fontSize: "0.45em",
+              lineHeight: "1.25",
+              transitionDelay: "0.25s",
+            }}
+          >
+            I am your fashion stylist
+          </span>
+        </h1>
       </div>
     </section>
   );
