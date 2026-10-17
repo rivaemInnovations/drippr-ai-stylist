@@ -29,8 +29,12 @@ const Hero = ({ compact }: { compact?: boolean }) => {
             className={`block smooth-layer transition-[transform,opacity] duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
             style={{ transitionDelay: "0.1s" }}
           >
+            {/* leading-[1.4] keeps this box taller than the font's em box (1.33em).
+                The h1's tighter 1.1 line-height would otherwise end the box above
+                the "y" descender, and since .text-gradient-orange paints via
+                background-clip:text, anything below the box renders as nothing. */}
             <span
-              className="text-gradient-orange inline-block animate-dripstr-glow"
+              className="text-gradient-orange inline-block leading-[1.4] animate-dripstr-glow"
               style={{ animationDelay: "0.5s" }}
             >
               Hey!
@@ -38,7 +42,7 @@ const Hero = ({ compact }: { compact?: boolean }) => {
           </span>
 
           <span
-            className={`block smooth-layer text-muted-foreground font-medium mt-3 md:mt-4 transition-[transform,opacity] duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+            className={`block smooth-layer text-muted-foreground font-medium mt-2 transition-[transform,opacity] duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
             style={{
               fontSize: "0.45em",
               lineHeight: "1.25",
